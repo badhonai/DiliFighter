@@ -5,7 +5,7 @@ import { SoundEngine } from '../audio/SoundEngine.js';
 import { ParticleSystem } from '../entities/ParticleSystem.js';
 import { Dili } from '../characters/Dili.js';
 import { Tsunami } from '../characters/Tsunami.js';
-import { TempleCourtyard } from '../stages/TempleCourtyard.js';
+import { ImageStage } from '../stages/ImageStage.js';
 import { HUD } from '../ui/HUD.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { TouchButtons } from '../ui/TouchButtons.js';
@@ -22,7 +22,7 @@ export class Engine {
     this.soundEngine = new SoundEngine();
     this.camera = new Camera();
     this.particleSystem = new ParticleSystem();
-    this.stage = new TempleCourtyard();
+    this.stage = new ImageStage();
     this.hud = new HUD();
     this.announcer = new MatchAnnouncer();
     this.joystick = new VirtualJoystick(this.inputManager, this.canvas);
@@ -97,7 +97,17 @@ export class Engine {
     this.stateTimer = 2.2;
     this.timeScale = 1.0;
 
-    this.announcer.announce(`ROUND ${this.roundNumber}`, 'READY...', 2.0, '#f8fafc');
+    // Rotate arena each round (first round of a match keeps the initial pick)
+    if (this.roundNumber > 1) {
+      this.stage.advance();
+    }
+
+    this.announcer.announce(
+      `ROUND ${this.roundNumber}`,
+      this.stage.arena.name,
+      2.0,
+      '#f8fafc'
+    );
     setTimeout(() => {
       this.soundEngine.playGong();
     }, 400);

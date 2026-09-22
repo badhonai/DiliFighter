@@ -29,15 +29,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# Persistent workspace context & assets (kept in workspace only)
+# Persistent workspace context (kept in workspace only)
 PROJECT_STATE.md
 *.context.md
 uploads/
 design_assets/
 assets/
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.gif
-*.bmp
