@@ -2,8 +2,8 @@ import { GAME_CONFIG } from '../config.js';
 
 export class Camera {
   constructor() {
-    this.x = GAME_CONFIG.CANVAS_WIDTH / 2;
-    this.y = GAME_CONFIG.CANVAS_HEIGHT / 2;
+    this.x = GAME_CONFIG.WORLD_WIDTH / 2;
+    this.y = GAME_CONFIG.WORLD_HEIGHT / 2;
     this.targetX = this.x;
     this.targetY = this.y;
     this.zoom = 1.0;
@@ -51,8 +51,8 @@ export class Camera {
   }
 
   applyTransform(ctx) {
-    const width = GAME_CONFIG.CANVAS_WIDTH;
-    const height = GAME_CONFIG.CANVAS_HEIGHT;
+    const width = GAME_CONFIG.WORLD_WIDTH;
+    const height = GAME_CONFIG.WORLD_HEIGHT;
 
     ctx.save();
     

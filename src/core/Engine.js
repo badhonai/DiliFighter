@@ -50,8 +50,41 @@ export class Engine {
   }
 
   setupResize() {
-    this.canvas.width = GAME_CONFIG.CANVAS_WIDTH;
-    this.canvas.height = GAME_CONFIG.CANVAS_HEIGHT;
+    const resize = () => this.resizeViewport();
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', resize);
+    this.resizeViewport();
+  }
+
+  resizeViewport() {
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    this.canvas.width = Math.round(width * dpr);
+    this.canvas.height = Math.round(height * dpr);
+    this.viewport = {
+      x: 0,
+      y: 0,
+      width,
+      height,
+      scale: Math.min(width / GAME_CONFIG.WORLD_WIDTH, height / GAME_CONFIG.WORLD_HEIGHT),
+      offsetX: (width - GAME_CONFIG.WORLD_WIDTH * Math.min(width / GAME_CONFIG.WORLD_WIDTH, height / GAME_CONFIG.WORLD_HEIGHT)) / 2,
+      offsetY: (height - GAME_CONFIG.WORLD_HEIGHT * Math.min(width / GAME_CONFIG.WORLD_WIDTH, height / GAME_CONFIG.WORLD_HEIGHT)) / 2,
+    };
+    this.dpr = dpr;
+  }
+
+  getViewport() {
+    return this.viewport;
+  }
+
+  clientToWorld(clientX, clientY) {
+    const v = this.viewport;
+    return {
+      x: (clientX - v.x - v.offsetX) / v.scale,
+      y: (clientY - v.y - v.offsetY) / v.scale,
+    };
   }
 
   startRound() {
@@ -263,38 +296,53 @@ export class Engine {
   }
 
   render() {
-    this.ctx.clearRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+    const v = this.viewport;
+    const dpr = this.dpr || 1;
+    const ctx = this.ctx;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Fill entire viewport (respecting device pixel ratio) with the page background.
+    ctx.fillStyle = '#05070a';
+    ctx.fillRect(0, 0, v.width * dpr, v.height * dpr);
+
+    ctx.save();
+    // Transform from physical canvas pixels into the fixed logical world space.
+    ctx.setTransform(dpr * v.scale, 0, 0, dpr * v.scale, dpr * v.offsetX, dpr * v.offsetY);
 
     // Apply Dynamic Camera Zoom & Shake
-    this.camera.applyTransform(this.ctx);
+    this.camera.applyTransform(ctx);
 
     // 1. Stage (Temple Courtyard / Shadow Realm)
-    this.stage.render(this.ctx);
+    this.stage.render(ctx);
 
     // 2. Projectiles
     for (const proj of this.projectiles) {
-      proj.render(this.ctx);
+      proj.render(ctx);
     }
 
     // 3. Fighters (Render order based on who is attacking)
     if (this.player.state === 'ATTACKING') {
-      this.opponent.render(this.ctx);
-      this.player.render(this.ctx);
+      this.opponent.render(ctx);
+      this.player.render(ctx);
     } else {
-      this.player.render(this.ctx);
-      this.opponent.render(this.ctx);
+      this.player.render(ctx);
+      this.opponent.render(ctx);
     }
 
     // 4. Particles & Slashes
-    this.particleSystem.render(this.ctx);
+    this.particleSystem.render(ctx);
 
-    this.camera.restoreTransform(this.ctx);
+    this.camera.restoreTransform(ctx);
 
-    // 5. Fixed HUD & UI Elements
-    this.hud.render(this.ctx, this.player, this.opponent, this.matchTimer, this.roundNumber);
-    this.joystick.render(this.ctx);
-    this.touchButtons.render(this.ctx, this.player);
-    this.announcer.render(this.ctx);
+    // 5. Fixed HUD & UI Elements (canvas is currently in world-space transform)
+    this.hud.render(ctx, this.player, this.opponent, this.matchTimer, this.roundNumber);
+    this.joystick.render(ctx);
+    this.touchButtons.render(ctx, this.player);
+    this.announcer.render(ctx);
+
+    ctx.restore();
   }
 
   run() {

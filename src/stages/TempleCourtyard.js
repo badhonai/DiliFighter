@@ -43,6 +43,19 @@ export class TempleCourtyard {
   render(ctx) {
     const s = this.shadowTransition; // 0 to 1
 
+    // Placeholder arena art is laid out for a 1280×720 world. When the canvas
+    // (and camera) are on a different aspect ratio, stretch it to cover the
+    // full view so there are never empty black borders on any edge.
+    const c = ctx.canvas;
+    const m = ctx.getTransform();
+    // Size of one world unit in physical canvas pixels (after DPR & global scale).
+    const unitPx = Math.hypot(m.a, m.b);
+    const scaleX = (c.width / 1280) / unitPx;
+    const scaleY = (c.height / 720) / unitPx;
+
+    ctx.save();
+    ctx.scale(scaleX, scaleY);
+
     // 1. Sky & Backdrop
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 720);
     if (s < 0.99) {
@@ -89,6 +102,8 @@ export class TempleCourtyard {
 
     // 5. Ambient Petals / Floating cyan embers
     this.renderAtmosphere(ctx, s);
+
+    ctx.restore();
   }
 
   renderFarMountains(ctx, s) {

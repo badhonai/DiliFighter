@@ -35,7 +35,7 @@ export class HUD {
   }
 
   render(ctx, p1, p2, matchTimer, roundNum) {
-    const w = GAME_CONFIG.CANVAS_WIDTH;
+    const w = GAME_CONFIG.WORLD_WIDTH;
 
     ctx.save();
 
