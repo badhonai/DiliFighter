@@ -106,59 +106,35 @@ export class ImageStage {
     const s = this.shadowTransition;
     const img = this.images[this.arenaIndex];
 
-    // The camera pans and zooms past the authored 1280×720 world frame, so
-    // instead of pinning the art to the world we fit it to the world rect the
-    // camera is *currently seeing* — the arena fills the view edge to edge on
-    // any device aspect or zoom level, never showing black borders. A slight
-    // parallax keeps it alive: the art drifts against camera pan and punches
-    // in gently when the camera zooms.
+    // Cover-fit the world art to whatever the current viewport is (same calm
+    // framing as the original stage: the full painting, no camera punch-in).
+    // The artwork is AI-outpainted wider than 16:9, so beyond the world frame
+    // there is real painted scenery on both sides — when the camera pans, the
+    // extended sides fill the view instead of showing black.
     const c = ctx.canvas;
     const m = ctx.getTransform();
-    const x0 = -m.e / m.a;
-    const y0 = -m.f / m.d;
-    const x1 = (c.width - m.e) / m.a;
-    const y1 = (c.height - m.f) / m.d;
-    const rectW = x1 - x0;
-    const rectH = y1 - y0;
+    const unitPx = Math.hypot(m.a, m.b);
+    const scaleX = (c.width / 1280) / unitPx;
+    const scaleY = (c.height / 720) / unitPx;
 
     ctx.save();
+    ctx.scale(scaleX, scaleY);
 
-    if (img && m.a > 0 && m.d > 0) {
+    if (img) {
+      // Map the painting's central 16:9 slice to the world frame (0..1280)
+      // and let the outpainted sides spill past it, world-anchored.
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
-      const rectAspect = rectW / rectH;
-
-      // Largest source crop matching the visible rect's aspect ratio
-      let cropW = iw;
-      let cropH = cropW / rectAspect;
-      if (cropH > ih) { cropH = ih; cropW = cropH * rectAspect; }
-
-      // Punch in with the camera (clamped so the art never over-zooms)
-      const zoomF = Math.min(1, Math.max(0.82, rectW / 1280));
-      cropW *= zoomF;
-      cropH *= zoomF;
-
-      // Parallax drift against camera pan, clamped inside the artwork
-      const parallax = 0.4;
-      const rectCX = (x0 + x1) / 2;
-      const pCX = iw / 2 + (rectCX - 640) * parallax * (iw / 1280);
-      const sx = Math.max(0, Math.min(iw - cropW, pCX - cropW / 2));
-
-      // Vertically anchor the artwork's painted floor (bottom ~20% of the art)
-      // to the gameplay ground line so fighters' feet always match the floor,
-      // whatever the viewport aspect ratio does to the visible slice.
-      const FLOOR_FRACTION = 0.8; // painted floor position in the source art
-      const groundViewY = (580 - y0) / rectH; // gameplay ground in view coords
-      const sy = Math.max(0, Math.min(ih - cropH, ih * FLOOR_FRACTION - cropH * groundViewY));
-
-      ctx.drawImage(img, sx, sy, cropW, cropH, x0, y0, rectW, rectH);
+      const totalWorldW = 720 * (iw / ih);
+      const marginX = (totalWorldW - 1280) / 2;
+      ctx.drawImage(img, -marginX, 0, totalWorldW, 720);
     } else {
       // Fallback while the artwork streams in
-      const grad = ctx.createLinearGradient(0, y0, 0, y1);
+      const grad = ctx.createLinearGradient(0, 0, 0, 720);
       grad.addColorStop(0, '#111827');
       grad.addColorStop(1, '#030507');
       ctx.fillStyle = grad;
-      ctx.fillRect(x0, y0, rectW, rectH);
+      ctx.fillRect(0, 0, 1280, 720);
     }
 
     // Ambient particles for this arena (dimmed during Shadow Mode)
@@ -171,16 +147,16 @@ export class ImageStage {
       ctx.restore();
     }
 
-    // Shadow Realm transformation overlay (covers the whole visible view)
+    // Shadow Realm transformation overlay (covers the extended art too)
     if (s > 0.01) {
       ctx.save();
       ctx.globalAlpha = s;
-      const shadowSky = ctx.createLinearGradient(0, y0, 0, y1);
+      const shadowSky = ctx.createLinearGradient(0, 0, 0, 720);
       shadowSky.addColorStop(0, 'rgba(2, 4, 8, 0.92)');
       shadowSky.addColorStop(0.5, 'rgba(5, 10, 20, 0.88)');
       shadowSky.addColorStop(1, 'rgba(2, 3, 5, 0.92)');
       ctx.fillStyle = shadowSky;
-      ctx.fillRect(x0, y0, rectW, rectH);
+      ctx.fillRect(-400, 0, 2080, 720);
       ctx.restore();
     }
 
