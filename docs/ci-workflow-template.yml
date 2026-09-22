@@ -1,0 +1,34 @@
+name: CI & Build Pipeline
+
+on:
+  push:
+    branches: [ main, beta ]
+  pull_request:
+    branches: [ main, beta ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Web Bundle
+        run: npm run build
+
+      - name: Check Build Artifacts
+        run: test -f dist/index.html && echo "Build verification successful!"

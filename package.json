@@ -1,0 +1,34 @@
+{
+  "name": "dilifighter",
+  "version": "1.0.0",
+  "description": "High-octane 2D/2.5D martial arts fighting game inspired by Shadow Fight, crafted from scratch with custom characters, fluid skeletal vector animations, shadow energy mechanics, and responsive multi-platform controls.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "fighting-game",
+    "martial-arts",
+    "shadow-fight",
+    "canvas2d",
+    "webgl",
+    "javascript",
+    "indie-game",
+    "open-source"
+  ],
+  "author": "badhonai",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/badhonai/DiliFighter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/badhonai/DiliFighter/issues"
+  },
+  "homepage": "https://github.com/badhonai/DiliFighter#readme",
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

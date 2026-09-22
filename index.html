@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>DiliFighter — Martial Arts Combat</title>
+  <link rel="stylesheet" href="./src/styles/game.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥋</text></svg>" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    
+    <div id="ui-overlay">
+      <!-- Desktop controls bar hint -->
+      <div class="controls-hint">
+        <span><strong>A/D</strong> Move</span>
+        <span><strong>W</strong> Jump</span>
+        <span><strong>S</strong> Crouch</span>
+        <span><strong>J</strong> Punch</span>
+        <span><strong>K</strong> Kick</span>
+        <span><strong>L</strong> Kunai</span>
+        <span><strong>SPACE</strong> Shadow Mode</span>
+        <span><strong>ESC</strong> Pause</span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Rajdhani:wght@500;700&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #05070a;
+  color: #fff;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at center, #111822 0%, #040608 100%);
+}
+
+#game-canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+  display: block;
+  z-index: 1;
+}
+
+/* UI Overlay Layer */
+#ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#ui-overlay * {
+  pointer-events: auto;
+}
+
+/* Controls Hint (Desktop) */
+.controls-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #94a3b8;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  display: flex;
+  gap: 16px;
+  z-index: 20;
+}
+
+.controls-hint span strong {
+  color: #38bdf8;
+}
+
+/* Virtual Touch Layer for Mobile */
+#touch-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.touch-interactive {
+  pointer-events: auto !important;
+}
+
+/* Pause Overlay */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(3, 6, 12, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: linear-gradient(135deg, rgba(20, 26, 38, 0.95), rgba(12, 16, 24, 0.98));
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05);
+  border-radius: 12px;
+  padding: 30px 40px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+}
+
+.modal-title {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #e2e8f0;
+  margin-bottom: 20px;
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+.btn-action {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid #38bdf8;
+  color: #fff;
+  padding: 10px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 1.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-action.btn-secondary {
+  background: transparent;
+  border-color: #64748b;
+  color: #94a3b8;
+}
+
+.btn-action.btn-secondary:hover {
+  background: rgba(100, 116, 139, 0.2);
+  border-color: #cbd5e1;
+  color: #f1f5f9;
+}
