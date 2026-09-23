@@ -41,6 +41,7 @@ export class PauseMenu {
 
     // Event listeners
     document.getElementById('btn-resume').addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
       this.togglePause(false);
     });
 
@@ -51,6 +52,7 @@ export class PauseMenu {
     });
 
     document.getElementById('btn-restart').addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
       this.togglePause(false);
       this.engine.restartMatch();
     });
@@ -63,6 +65,8 @@ export class PauseMenu {
     } else {
       this.overlayEl.classList.remove('active');
     }
+    this.engine.soundEngine.setPaused(this.isPaused);
+    this.engine.soundEngine.playUIClick();
     return this.isPaused;
   }
 }

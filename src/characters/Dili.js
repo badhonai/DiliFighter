@@ -102,6 +102,7 @@ export class Dili extends Fighter {
     if (isJumping && this.y >= 575) {
       this.vy = -560;
       this.state = 'JUMP';
+      soundEngine.playJump();
       return;
     }
 

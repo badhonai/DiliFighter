@@ -40,6 +40,9 @@ export class Engine {
     this.matchState = 'INTRO'; // 'INTRO' | 'FIGHTING' | 'KO' | 'MATCH_OVER'
     this.stateTimer = 2.0;
 
+    // Audio edge-detection state (rising edges of game events)
+    this.audioState = { lastTimerCeil: null, shadowReadyP1: false, shadowReadyP2: false };
+
     // Time Accumulator
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -179,8 +182,11 @@ export class Engine {
     // Combat & Collision Evaluation
     this.evaluateCombat();
 
-    // Stage & Particles
+    // Adaptive audio (music theme/intensity, event edge-triggered stingers)
     const isAnyShadow = this.player.shadowSystem.isActive || this.opponent.shadowSystem.isActive;
+    this.syncAudio(isAnyShadow);
+
+    // Stage & Particles
     this.stage.update(effectiveDt, isAnyShadow);
     this.particleSystem.update(effectiveDt);
     this.camera.update(effectiveDt, this.player, this.opponent);
@@ -243,6 +249,7 @@ export class Engine {
       for (const hb of target.getHurtboxes()) {
         if (projHitbox.intersects(hb)) {
           proj.active = false;
+          this.soundEngine.playRangedImpact();
           const result = target.takeHit(projHitbox, proj.owner, this.soundEngine, this.particleSystem);
           this.camera.shake(6, 0.15);
           if (result === 'ko') {
@@ -254,13 +261,41 @@ export class Engine {
     }
   }
 
+  /** Game-state -> audio translation, polled every frame (edge-safe). */
+  syncAudio(anyShadow) {
+    const fighting = this.matchState === 'FIGHTING';
+    this.soundEngine.syncMusic({
+      theme: this.stage.arenaIndex === 0 ? 'neon' : 'cliff',
+      intensity: this.matchState === 'INTRO' ? 0.45 : fighting ? 1 : 0.65,
+      urgent: fighting && this.matchTimer <= 10,
+      shadow: anyShadow,
+    });
+
+    // Rising edge: either shadow bar just filled -> shimmer cue
+    const p1Ready = this.player.shadowSystem.isReady();
+    const p2Ready = this.opponent.shadowSystem.isReady();
+    if (p1Ready && !this.audioState.shadowReadyP1) this.soundEngine.playShadowReady();
+    if (p2Ready && !this.audioState.shadowReadyP2) this.soundEngine.playShadowReady();
+    this.audioState.shadowReadyP1 = p1Ready;
+    this.audioState.shadowReadyP2 = p2Ready;
+
+    // Final-five countdown ticks
+    if (fighting) {
+      const c = Math.ceil(this.matchTimer);
+      if (c !== this.audioState.lastTimerCeil) {
+        this.audioState.lastTimerCeil = c;
+        if (c <= 5 && c >= 1) this.soundEngine.playCountdownTick(c === 1);
+      }
+    }
+  }
+
   triggerKO(winner, loser) {
     if (this.matchState === 'KO') return;
     this.matchState = 'KO';
     this.stateTimer = 3.0;
     this.timeScale = 0.3; // Visceral slow motion impact!
     this.announcer.announce('K.O.!', '', 2.5, '#ef4444');
-    this.soundEngine.playGong();
+    this.soundEngine.playKO();
 
     setTimeout(() => {
       this.timeScale = 1.0;
@@ -289,6 +324,8 @@ export class Engine {
           4.0,
           isPlayerWin ? '#eab308' : '#ef4444'
         );
+        if (isPlayerWin) this.soundEngine.playVictory();
+        else this.soundEngine.playDefeat();
         setTimeout(() => {
           this.restartMatch();
         }, 4500);

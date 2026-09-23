@@ -233,6 +233,7 @@ export class Fighter {
 
           // Spawn projectile if this is a ranged throw
           if (move === MOVES.RANGED_THROW) {
+            soundEngine.playRangedLaunch();
             projectiles.push(new Projectile(
               this.x + 35 * this.direction,
               this.y - 65,
@@ -289,6 +290,7 @@ export class Fighter {
       if (this.state === 'JUMP') {
         this.state = 'IDLE';
         particleSystem.emitDust(this.x, this.y, 4);
+        soundEngine.playLand();
       }
     }
 
