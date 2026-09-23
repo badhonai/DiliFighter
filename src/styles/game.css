@@ -57,8 +57,9 @@ html, body {
 /* Help "?" Button */
 #help-toggle-btn {
   position: fixed;
-  top: 10px;
-  right: 58px;
+  top: 56px;
+  left: 8px;
+  right: auto;
   width: 40px;
   height: 40px;
   background: rgba(10, 14, 22, 0.75);
@@ -184,6 +185,20 @@ html, body {
   color: #b6c2d2;
   font-size: 13.5px;
   margin: 0;
+  line-height: 1.45;
+}
+
+.help-text {
+  color: #b6c2d2;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.help-text strong,
+.help-row p strong {
+  color: #e2e8f0;
 }
 
 .help-grid {
@@ -388,8 +403,9 @@ html, body {
 /* Persistent Fullscreen Toggle Button */
 #fullscreen-toggle-btn {
   position: fixed;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  left: 8px;
+  right: auto;
   width: 40px;
   height: 40px;
   background: rgba(10, 14, 22, 0.75);

@@ -43,10 +43,11 @@ export class HUD {
     this.renderTimer(ctx, w / 2, 45, Math.ceil(matchTimer), roundNum);
 
     // 2. Player 1 (Left) Bars: Name, Health, Shadow Energy
-    this.renderPlayerHUD(ctx, 60, 40, p1, this.p1TrailingHealth, false);
+    // (nudged right so the stacked top-left fullscreen/help buttons never cover it)
+    this.renderPlayerHUD(ctx, 164, 40, p1, this.p1TrailingHealth, false);
 
     // 3. Player 2 (Right) Bars: Name, Health, Shadow Energy
-    this.renderPlayerHUD(ctx, w - 60, 40, p2, this.p2TrailingHealth, true);
+    this.renderPlayerHUD(ctx, w - 164, 40, p2, this.p2TrailingHealth, true);
 
     // 4. Hit Combo Popups
     this.renderCombos(ctx, w);
@@ -89,7 +90,7 @@ export class HUD {
   }
 
   renderPlayerHUD(ctx, anchorX, y, fighter, trailingHealth, isReversed) {
-    const barWidth = 440;
+    const barWidth = 360;
     const barHeight = 16;
     const maxHp = fighter.maxHealth;
     const hpRatio = Math.max(0, fighter.health / maxHp);
