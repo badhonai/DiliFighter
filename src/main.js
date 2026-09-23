@@ -1,11 +1,13 @@
 import { Engine } from './core/Engine.js';
 import { OrientationGuard } from './ui/OrientationGuard.js';
+import { HelpMenu } from './ui/HelpMenu.js';
 
 function initGame() {
   const canvas = document.getElementById('game-canvas');
   if (!canvas) return;
 
   new OrientationGuard();
+  new HelpMenu();
 
   const engine = new Engine(canvas);
   engine.run();

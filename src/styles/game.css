@@ -54,28 +54,165 @@ html, body {
   pointer-events: auto;
 }
 
-/* Controls Hint (Desktop) */
-.controls-hint {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+/* Help "?" Button */
+#help-toggle-btn {
+  position: fixed;
+  top: 10px;
+  right: 58px;
+  width: 40px;
+  height: 40px;
   background: rgba(10, 14, 22, 0.75);
-  border: 1px solid rgba(0, 240, 255, 0.25);
-  border-radius: 20px;
-  padding: 6px 18px;
-  font-size: 13px;
-  letter-spacing: 1px;
-  color: #94a3b8;
-  backdrop-filter: blur(4px);
-  pointer-events: none;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  color: #38bdf8;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'Cinzel', serif;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 100;
   display: flex;
-  gap: 16px;
-  z-index: 20;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
 }
 
-.controls-hint span strong {
+#help-toggle-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+}
+
+/* Help Guide Modal */
+#help-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 12, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 180;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 16px;
+}
+
+#help-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.help-card {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: rgba(12, 18, 28, 0.92);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 12px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+}
+
+#help-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#help-close-btn:hover {
+  border-color: #38bdf8;
   color: #38bdf8;
+}
+
+#help-close-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.help-title {
+  font-family: 'Cinzel', serif;
+  color: #e2e8f0;
+  font-size: 20px;
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 20px;
+  text-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+}
+
+.help-section h3 {
+  font-family: 'Rajdhani', sans-serif;
+  color: #38bdf8;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.help-section {
+  margin-bottom: 18px;
+}
+
+.help-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+}
+
+.help-row .help-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.help-row p,
+.help-grid p {
+  color: #b6c2d2;
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  align-items: center;
+}
+
+.help-key {
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 5px;
+  color: #7dd3fc;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.help-credit {
+  text-align: center;
+  color: #64748b;
+  font-size: 11px;
+  font-family: Verdana, sans-serif;
+  margin-top: 4px;
 }
 
 /* Virtual Touch Layer for Mobile */
@@ -190,10 +327,15 @@ html, body {
 }
 
 .rotate-card .rotate-icon {
-  font-size: 56px;
   display: inline-block;
   animation: rotate-hint 1.6s ease-in-out infinite;
   margin-bottom: 16px;
+}
+
+.rotate-card .rotate-icon img {
+  width: 64px;
+  height: 64px;
+  display: block;
 }
 
 @keyframes rotate-hint {
@@ -233,6 +375,14 @@ html, body {
 #tap-to-play-btn {
   font-size: 20px;
   padding: 16px 36px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#tap-to-play-btn .play-icon {
+  width: 22px;
+  height: 22px;
 }
 
 /* Persistent Fullscreen Toggle Button */
@@ -258,4 +408,10 @@ html, body {
 
 #fullscreen-toggle-btn:hover {
   background: rgba(0, 240, 255, 0.15);
+}
+
+#fullscreen-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }

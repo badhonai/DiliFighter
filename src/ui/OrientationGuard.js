@@ -29,7 +29,7 @@ export class OrientationGuard {
     this.rotateOverlay.id = 'rotate-overlay';
     this.rotateOverlay.innerHTML = `
       <div class="rotate-card">
-        <div class="rotate-icon">📱</div>
+        <div class="rotate-icon"><img src="${import.meta.env.BASE_URL}icons/phone.svg" alt="" draggable="false" /></div>
         <h2>Rotate Your Device</h2>
         <p>DiliFighter plays best in landscape mode.</p>
       </div>
@@ -40,7 +40,10 @@ export class OrientationGuard {
     this.tapOverlay = document.createElement('div');
     this.tapOverlay.id = 'tap-to-play-overlay';
     this.tapOverlay.innerHTML = `
-      <button id="tap-to-play-btn" class="btn-action">▶ TAP TO PLAY</button>
+      <button id="tap-to-play-btn" class="btn-action">
+        <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+        TAP TO PLAY
+      </button>
     `;
     document.body.appendChild(this.tapOverlay);
 
@@ -49,9 +52,13 @@ export class OrientationGuard {
     this.fsBtn.id = 'fullscreen-toggle-btn';
     this.fsBtn.type = 'button';
     this.fsBtn.setAttribute('aria-label', 'Toggle Fullscreen');
-    this.fsBtn.innerHTML = '⛶';
+    this.fsBtn.innerHTML = OrientationGuard.ICON_EXPAND;
     document.body.appendChild(this.fsBtn);
   }
+
+  static ICON_EXPAND = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  static ICON_COMPRESS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v4a1 1 0 0 1-1 1H4M20 8h-4a1 1 0 0 1-1-1V4M9 20v-4a1 1 0 0 0-1-1H4M20 16h-4a1 1 0 0 0-1 1v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   bindEvents() {
     window.addEventListener('resize', () => this.update());
@@ -98,7 +105,7 @@ export class OrientationGuard {
 
   updateFullscreenIcon() {
     const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
-    this.fsBtn.innerHTML = isFullscreen ? '⛝' : '⛶';
+    this.fsBtn.innerHTML = isFullscreen ? OrientationGuard.ICON_COMPRESS : OrientationGuard.ICON_EXPAND;
   }
 
   update() {

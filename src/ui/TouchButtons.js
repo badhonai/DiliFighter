@@ -4,11 +4,19 @@ export class TouchButtons {
     this.canvas = canvas;
 
     this.buttons = [
-      { id: 'punch', label: '👊', name: 'Punch', x: 1180, y: 550, radius: 36, pressed: false },
-      { id: 'kick', label: '🥋', name: 'Kick', x: 1090, y: 620, radius: 34, pressed: false },
-      { id: 'ranged', label: '🎯', name: 'Ranged', x: 1195, y: 440, radius: 28, pressed: false },
-      { id: 'shadow', label: '🌀', name: 'Shadow', x: 1070, y: 500, radius: 32, pressed: false },
+      { id: 'punch', icon: 'icons/punch.svg', name: 'Punch', x: 1180, y: 550, radius: 36, pressed: false },
+      { id: 'kick', icon: 'icons/kick.svg', name: 'Kick', x: 1090, y: 620, radius: 34, pressed: false },
+      { id: 'ranged', icon: 'icons/ranged.svg', name: 'Ranged', x: 1195, y: 440, radius: 28, pressed: false },
+      { id: 'shadow', icon: 'icons/shadow.svg', name: 'Shadow', x: 1070, y: 500, radius: 32, pressed: false },
     ];
+
+    // Preload SVG icons so they render crisply on the canvas
+    this.icons = {};
+    for (const btn of this.buttons) {
+      const img = new Image();
+      img.src = `${import.meta.env.BASE_URL}${btn.icon}`;
+      this.icons[btn.id] = img;
+    }
 
     this.setupEvents();
   }
@@ -114,11 +122,12 @@ export class TouchButtons {
       ctx.fill();
       ctx.stroke();
 
-      // Icon / Emoji
-      ctx.font = `${btn.radius * 0.85}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(btn.label, 0, 2);
+      // Icon
+      const icon = this.icons[btn.id];
+      if (icon && icon.complete && icon.naturalWidth > 0) {
+        const iconSize = btn.radius * 1.15;
+        ctx.drawImage(icon, -iconSize / 2, -iconSize / 2, iconSize, iconSize);
+      }
 
       ctx.restore();
     }
