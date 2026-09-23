@@ -18,7 +18,39 @@ export class TouchButtons {
       this.icons[btn.id] = img;
     }
 
+    this.layout();
+    window.addEventListener('resize', () => this.layout());
+    window.addEventListener('orientationchange', () => this.layout());
+
     this.setupEvents();
+  }
+
+  /**
+   * Anchor the button cluster to the *actual* screen edges. On viewports
+   * wider than 16:9 the visible world extends past 0..1280, so buttons
+   * docked to world-space 1280 would float away from the screen edge.
+   */
+  layout() {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const scale = rect.height / 720;
+    const marginX = Math.max(0, (rect.width - rect.height * (1280 / 720)) / 2) / scale;
+    const marginY = Math.max(0, (rect.height - rect.width * (720 / 1280)) / 2) / (rect.width / 1280);
+
+    const right = 1280 + marginX;
+    const bottom = 720 + marginY;
+
+    const pos = {
+      punch:  { x: right - 78,  y: bottom - 185, radius: 54 },
+      kick:   { x: right - 188, y: bottom - 96,  radius: 50 },
+      ranged: { x: right - 80,  y: bottom - 330, radius: 44 },
+      shadow: { x: right - 222, y: bottom - 272, radius: 48 },
+    };
+    for (const btn of this.buttons) {
+      btn.x = pos[btn.id].x;
+      btn.y = pos[btn.id].y;
+      btn.radius = pos[btn.id].radius;
+    }
   }
 
   getCanvasCoords(clientX, clientY) {

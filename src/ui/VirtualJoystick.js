@@ -2,15 +2,41 @@ export class VirtualJoystick {
   constructor(inputManager, canvas) {
     this.inputManager = inputManager;
     this.canvas = canvas;
-    this.baseX = 140;
-    this.baseY = 560;
-    this.thumbX = 140;
-    this.thumbY = 560;
-    this.radius = 65;
     this.active = false;
     this.pointerId = null;
 
+    this.layout();
+    this.baseX = this.idleX;
+    this.baseY = this.idleY;
+    this.thumbX = this.baseX;
+    this.thumbY = this.baseY;
+
+    window.addEventListener('resize', () => this.layout());
+    window.addEventListener('orientationchange', () => this.layout());
+
     this.setupEvents();
+  }
+
+  /** Anchor the idle joystick to the real bottom-left screen corner. */
+  layout() {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const scale = rect.height / 720;
+    const marginX = Math.max(0, (rect.width - rect.height * (1280 / 720)) / 2) / scale;
+    const marginY = Math.max(0, (rect.height - rect.width * (720 / 1280)) / 2) / (rect.width / 1280);
+
+    this.leftEdge = -marginX;
+    this.bottomEdge = 720 + marginY;
+    this.idleX = this.leftEdge + 168;
+    this.idleY = this.bottomEdge - 158;
+    this.radius = 78;
+
+    if (!this.active) {
+      this.baseX = this.idleX;
+      this.baseY = this.idleY;
+      this.thumbX = this.idleX;
+      this.thumbY = this.idleY;
+    }
   }
 
   getCanvasCoords(clientX, clientY) {
@@ -41,8 +67,8 @@ export class VirtualJoystick {
     const handleStart = (clientX, clientY, id) => {
       const { x, y } = this.getCanvasCoords(clientX, clientY);
 
-      // Bottom-left quadrant for joystick
-      if (x < 440 && y > 380) {
+      // Bottom-left region for joystick (generous touch area for thumbs)
+      if (x < (this.leftEdge + 600) && y > 300) {
         this.active = true;
         this.pointerId = id;
         this.baseX = x;
@@ -78,8 +104,8 @@ export class VirtualJoystick {
       if (this.pointerId === id) {
         this.active = false;
         this.pointerId = null;
-        this.thumbX = this.baseX = 140;
-        this.thumbY = this.baseY = 560;
+        this.thumbX = this.baseX = this.idleX;
+        this.thumbY = this.baseY = this.idleY;
         this.inputManager.setVirtualAxis(0, 0);
       }
     };
