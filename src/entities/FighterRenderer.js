@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from '../config.js';
+
 export class FighterRenderer {
   constructor(fighter) {
     this.fighter = fighter;
@@ -8,9 +10,10 @@ export class FighterRenderer {
     const isShadow = f.shadowSystem.isActive;
     const dir = f.direction; // 1 for facing right, -1 for facing left
 
+    const S = GAME_CONFIG.FIGHTER_SCALE;
     ctx.save();
     ctx.translate(f.x, f.y);
-    ctx.scale(dir, 1);
+    ctx.scale(dir * S, S);
 
     // Dynamic ground shadow
     this.renderGroundShadow(ctx, f, isShadow);
@@ -357,7 +360,7 @@ export class FighterRenderer {
 
     ctx.beginPath();
     ctx.moveTo(-2, -4);                                  // neck back
-    ctx.quadraticCurveTo(-16 - rush, 18, -20 - rush - sway, 46 * flare); // outer edge
+    ctx.quadraticCurveTo(-18 - rush, 18, -24 - rush - sway, 50 * flare); // outer edge
     ctx.quadraticCurveTo(-12 - sway * 0.5, 52 * flare, -6, 44 * flare);  // hem wave 1
     ctx.quadraticCurveTo(-2, 52 * flare, 4, 45 * flare);                 // hem wave 2
     ctx.quadraticCurveTo(8 - rush * 0.4, 20, 4, -2);     // inner edge (hidden by torso)
@@ -489,7 +492,7 @@ export class FighterRenderer {
       }
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(0, -1, 14.5, 0, Math.PI * 2);
+      ctx.arc(0, -1.5, 16, 0, Math.PI * 2);
       ctx.fill();
 
       // Rim light
@@ -505,7 +508,7 @@ export class FighterRenderer {
       // Face blob (speech-bubble shape)
       ctx.fillStyle = isShadow ? '#050a12' : '#2e6fb2';
       ctx.beginPath();
-      ctx.ellipse(1, -1, 9.5, 7.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(1, -1.5, 10.5, 8.5, 0, 0, Math.PI * 2);
       ctx.fill();
       // Bubble tail (lower right, like a chat bubble)
       ctx.beginPath();
@@ -533,8 +536,8 @@ export class FighterRenderer {
         }
         ctx.restore();
       };
-      eye(-3.2);
-      eye(4.6);
+      eye(-3.6);
+      eye(5);
 
       // Tiny smile
       ctx.strokeStyle = isShadow ? '#67e8f9' : '#0b2447';
@@ -547,7 +550,7 @@ export class FighterRenderer {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
       ctx.lineWidth = 2.4;
       ctx.beginPath();
-      ctx.arc(0, -1, 11.5, -2.4, -1.5);
+      ctx.arc(0, -1.5, 12.8, -2.4, -1.5);
       ctx.stroke();
     } else {
       // ---- TSUNAMI: samurai head + straw cone hat (unchanged) ----
@@ -594,7 +597,7 @@ export class FighterRenderer {
 
     // Thigh
     ctx.fillStyle = isBack ? secondary : primary;
-    ctx.fillRect(-6, 0, 12, 24);
+    ctx.fillRect(-6.5, 0, 13, 24);
 
     // Shin
     ctx.translate(0, 24);
@@ -604,7 +607,7 @@ export class FighterRenderer {
     } else {
       ctx.fillStyle = isBack ? '#020617' : '#0f172a';
     }
-    ctx.fillRect(-5, 0, 10, 26);
+    ctx.fillRect(-5.5, 0, 11, 26);
 
     // Foot / boot
     ctx.translate(0, 26);
@@ -642,7 +645,7 @@ export class FighterRenderer {
 
     // Upper Arm
     ctx.fillStyle = isBack ? secondary : primary;
-    ctx.fillRect(-4, 0, 8, 20);
+    ctx.fillRect(-4.5, 0, 9, 20);
 
     // Forearm
     ctx.translate(0, 20);
@@ -652,7 +655,7 @@ export class FighterRenderer {
     } else {
       ctx.fillStyle = skin;
     }
-    ctx.fillRect(-3.5, 0, 7, 18);
+    ctx.fillRect(-4, 0, 8, 18);
 
     // Weapon Hand
     ctx.translate(0, 18);

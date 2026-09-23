@@ -64,28 +64,29 @@ export class Fighter {
   }
 
   getHurtboxes() {
+    const S = GAME_CONFIG.FIGHTER_SCALE;
     const isCrouching = this.state === 'CROUCH';
     const isKnockedDown = this.state === 'KNOCKDOWN';
 
     if (isKnockedDown) {
       // Grounded prone hurtbox
       return [
-        new Hitbox(this.x, this.y, 70, 25, 'hurtbox')
+        new Hitbox(this.x, this.y, 70 * S, 25 * S, 'hurtbox')
       ];
     }
 
     if (isCrouching) {
       return [
-        new Hitbox(this.x, this.y - 40, 42, 35, 'hurtbox'), // Torso
-        new Hitbox(this.x, this.y, 48, 40, 'hurtbox'),       // Legs
+        new Hitbox(this.x, this.y - 40 * S, 42 * S, 35 * S, 'hurtbox'), // Torso
+        new Hitbox(this.x, this.y, 48 * S, 40 * S, 'hurtbox'),          // Legs
       ];
     }
 
     // Standing / standard hurtboxes
     return [
-      new Hitbox(this.x, this.y - 75, 30, 26, 'hurtbox'),  // Head
-      new Hitbox(this.x, this.y - 45, 38, 40, 'hurtbox'),  // Torso
-      new Hitbox(this.x, this.y, 36, 45, 'hurtbox'),       // Legs
+      new Hitbox(this.x, this.y - 75 * S, 30 * S, 26 * S, 'hurtbox'),  // Head
+      new Hitbox(this.x, this.y - 45 * S, 38 * S, 40 * S, 'hurtbox'),  // Torso
+      new Hitbox(this.x, this.y, 36 * S, 45 * S, 'hurtbox'),           // Legs
     ];
   }
 
@@ -97,10 +98,11 @@ export class Fighter {
     const m = this.currentMove;
     if (!m.hitbox) return null;
 
-    const hx = this.x + m.hitbox.offsetX * this.direction;
-    const hy = this.y + m.hitbox.offsetY;
+    const S = GAME_CONFIG.FIGHTER_SCALE;
+    const hx = this.x + m.hitbox.offsetX * S * this.direction;
+    const hy = this.y + m.hitbox.offsetY * S;
 
-    return new Hitbox(hx, hy, m.hitbox.w, m.hitbox.h, 'hitbox', {
+    return new Hitbox(hx, hy, m.hitbox.w * S, m.hitbox.h * S, 'hitbox', {
       damage: m.damage * (this.shadowSystem.isActive ? 1.3 : 1.0),
       knockbackX: m.knockback.x * this.direction,
       knockbackY: m.knockback.y,

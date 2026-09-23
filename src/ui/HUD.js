@@ -76,8 +76,8 @@ export class HUD {
 
     // 2. Player 1 (Left) / Player 2 (Right) — mirrored around the medallion.
     // The left anchor keeps clear of the stacked top-left HTML buttons.
-    this.renderPlayerHUD(ctx, 164, 40, p1, this.p1TrailingHealth, false);
-    this.renderPlayerHUD(ctx, w - 164, 40, p2, this.p2TrailingHealth, true);
+    this.renderPlayerHUD(ctx, 122, 48, p1, this.p1TrailingHealth, false);
+    this.renderPlayerHUD(ctx, w - 122, 48, p2, this.p2TrailingHealth, true);
 
     // 3. Hit Combo Popups
     this.renderCombos(ctx);
@@ -124,10 +124,10 @@ export class HUD {
     const glow = isReversed ? P2_GLOW : P1_GLOW;
 
     // Mirrored geometry: crest center = anchor; bar 55px outward clear of it
-    const barW = 340;
-    const barH = 20;
-    const tip = 8;
-    const outerEdgeX = anchorX + dir * 55;   // 219 / 1061
+    const barW = 402;
+    const barH = 28;
+    const tip = 10;
+    const outerEdgeX = anchorX + dir * 56;
     const innerEdgeX = outerEdgeX + dir * barW; // 559 / 721
     const tipX = innerEdgeX + dir * tip;        // 567 / 713
     const barLeft = Math.min(outerEdgeX, innerEdgeX);
@@ -141,9 +141,9 @@ export class HUD {
     this.renderCrest(ctx, anchorX, y + 12, isReversed);
 
     // ---- Name Plate (angled glass chip above the bar) ----
-    const plateY0 = y - 28; // 12
-    const plateY1 = y - 5;  // 35
-    const plateInnerTop = outerEdgeX + dir * 188;
+    const plateY0 = y - 36;
+    const plateY1 = y - 7;
+    const plateInnerTop = outerEdgeX + dir * 236;
     const plateInnerBottom = plateInnerTop - dir * 12;
 
     const platePath = new Path2D();
@@ -166,19 +166,19 @@ export class HUD {
     ctx.stroke();
 
     // Fighter name
-    ctx.font = '800 17px "Cinzel", serif';
+    ctx.font = '800 23px "Cinzel", serif';
     ctx.fillStyle = '#f8fafc';
     ctx.textAlign = isReversed ? 'right' : 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.shadowColor = glow;
     ctx.shadowBlur = 5;
-    const nameX = isReversed ? outerEdgeX - 10 : outerEdgeX + 10;
-    ctx.fillText(fighter.name, nameX, plateY1 - 6);
+    const nameX = isReversed ? outerEdgeX - 12 : outerEdgeX + 12;
+    ctx.fillText(fighter.name, nameX, plateY1 - 7);
     ctx.shadowBlur = 0;
 
     // Round pips (best of 3): angled diamonds at the plate's inner end
     for (let r = 0; r < 2; r++) {
-      const pipX = plateInnerTop - dir * (26 + r * 20);
+      const pipX = plateInnerTop - dir * (32 + r * 26);
       const pipY = (plateY0 + plateY1) / 2;
       const won = r < fighter.roundsWon;
       ctx.save();
@@ -187,14 +187,14 @@ export class HUD {
       ctx.strokeStyle = won ? '#fef08a' : 'rgba(148, 163, 184, 0.5)';
       if (won) {
         ctx.shadowColor = '#fde047';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 9;
       }
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(5, 0);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(-5, 0);
+      ctx.moveTo(0, -8);
+      ctx.lineTo(6.5, 0);
+      ctx.lineTo(0, 8);
+      ctx.lineTo(-6.5, 0);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -299,8 +299,8 @@ export class HUD {
     ctx.stroke();
 
     // ---- Shadow Energy Meter (segmented, under the health bar) ----
-    const shadowY = y + barH + 4;
-    const shadowH = 9;
+    const shadowY = y + barH + 5;
+    const shadowH = 11;
     const ss = fighter.shadowSystem;
     const shadowRatio = Math.max(0, Math.min(1, ss.energy / ss.maxEnergy));
     const isReady = ss.isReady();

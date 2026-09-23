@@ -461,6 +461,35 @@ html, body {
   display: block;
 }
 
+/* Pause/play — fourth icon in the top-left column */
+#pause-toggle-btn {
+  position: fixed;
+  top: 152px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  color: #7dd3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#pause-toggle-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+}
+
+#pause-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
 /* Music on/off — third icon in the top-left column, under the manual button */
 #music-toggle-btn {
   position: fixed;
