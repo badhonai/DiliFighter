@@ -65,10 +65,14 @@ export class VirtualJoystick {
 
   setupEvents() {
     const handleStart = (clientX, clientY, id) => {
+      // First-touch lock: a second finger in the zone must not steal control
+      if (this.active) return;
+
       const { x, y } = this.getCanvasCoords(clientX, clientY);
 
-      // Bottom-left region for joystick (generous touch area for thumbs)
-      if (x < (this.leftEdge + 600) && y > 300) {
+      // Left half of the screen (center is always x=640 regardless of
+      // letterboxing), below the top HUD rows (generous thumb area)
+      if (x < 640 && y > 220) {
         this.active = true;
         this.pointerId = id;
         this.baseX = x;
@@ -110,8 +114,12 @@ export class VirtualJoystick {
       }
     };
 
-    // Touch events
+    // Touch events. preventDefault is called ONLY for touches that started
+    // on the game canvas — this stops the browser hijacking gameplay touches
+    // for scroll/pinch gestures (which fires touchcancel and kills the stick
+    // mid-move), while leaving HTML buttons (help, fullscreen) tappable.
     window.addEventListener('touchstart', (e) => {
+      if (e.target === this.canvas && e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         handleStart(t.clientX, t.clientY, t.identifier);
@@ -119,6 +127,7 @@ export class VirtualJoystick {
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
+      if (e.target === this.canvas && e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         handleMove(t.clientX, t.clientY, t.identifier);

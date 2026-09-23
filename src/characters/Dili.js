@@ -1,5 +1,6 @@
 import { Fighter } from '../entities/Fighter.js';
 import { MOVES } from '../combat/FrameData.js';
+import { GAME_CONFIG } from '../config.js';
 
 export class Dili extends Fighter {
   constructor(x = 350, y = 580) {
@@ -108,22 +109,25 @@ export class Dili extends Fighter {
     if (isCrouching && this.y >= 575) {
       this.state = 'CROUCH';
       this.vx = 0;
+      this.moveSpeed = 0;
       return;
     }
 
-    // Walk Left / Right
+    // Walk Left / Right — accelerate smoothly toward the target speed
+    // instead of snapping 0<->walkSpeed in one frame (fixes jerky movement)
     const walkSpeed = this.shadowSystem.isActive ? 280 : 220;
-    if (isMovingRight) {
-      this.vx = walkSpeed;
+    const targetSpeed = isMovingRight ? walkSpeed : isMovingLeft ? -walkSpeed : 0;
+    const blend = 1 - Math.exp(-18 * GAME_CONFIG.FIXED_TIMESTEP); // ~55ms ramp
+    this.moveSpeed += (targetSpeed - this.moveSpeed) * blend;
+    // Snap to a full stop so the fighter doesn't micro-crawl forever
+    if (targetSpeed === 0 && Math.abs(this.moveSpeed) < 14) this.moveSpeed = 0;
+    this.vx = this.moveSpeed;
+    if (this.moveSpeed > 8) {
       this.state = this.direction === 1 ? 'WALK_FORWARD' : 'WALK_BACK';
-    } else if (isMovingLeft) {
-      this.vx = -walkSpeed;
+    } else if (this.moveSpeed < -8) {
       this.state = this.direction === -1 ? 'WALK_FORWARD' : 'WALK_BACK';
-    } else {
-      this.vx = 0;
-      if (this.y >= 575) {
-        this.state = 'IDLE';
-      }
+    } else if (this.y >= 575) {
+      this.state = 'IDLE';
     }
   }
 }

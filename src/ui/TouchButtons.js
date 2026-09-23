@@ -78,47 +78,76 @@ export class TouchButtons {
   }
 
   setupEvents() {
-    const checkButtons = (clientX, clientY, isDown) => {
-      const { x, y } = this.getCanvasCoords(clientX, clientY);
+    // Per-touch ownership: touchId -> Set of button ids it is holding.
+    // Buttons must be released when THAT touch ends, no matter where the
+    // finger is — the old position-based release left buttons stuck pressed
+    // forever if the finger slid off the button before lifting, which
+    // locked the fighter in its attack state and froze all movement.
+    this.heldBy = new Map();
 
+    const pressAt = (clientX, clientY, id) => {
+      const { x, y } = this.getCanvasCoords(clientX, clientY);
+      const nowHeld = new Set();
       for (const btn of this.buttons) {
         const dx = x - btn.x;
         const dy = y - btn.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist <= btn.radius + 12) {
-          btn.pressed = isDown;
-          this.inputManager.setVirtualButton(btn.id, isDown);
+        if (Math.sqrt(dx * dx + dy * dy) <= btn.radius + 12) {
+          nowHeld.add(btn.id);
+          if (!btn.pressed) {
+            btn.pressed = true;
+            this.inputManager.setVirtualButton(btn.id, true);
+          }
         }
       }
+      if (nowHeld.size > 0) this.heldBy.set(id, nowHeld);
     };
 
-    // Touch events
+    const releaseTouch = (id) => {
+      const owned = this.heldBy.get(id);
+      if (!owned) return;
+      for (const btnId of owned) {
+        // A button only releases when no other touch still holds it
+        let stillHeld = false;
+        for (const [otherId, otherSet] of this.heldBy) {
+          if (otherId !== id && otherSet.has(btnId)) { stillHeld = true; break; }
+        }
+        if (!stillHeld) {
+          const btn = this.buttons.find(b => b.id === btnId);
+          if (btn) btn.pressed = false;
+          this.inputManager.setVirtualButton(btnId, false);
+        }
+      }
+      this.heldBy.delete(id);
+    };
+
+    // preventDefault only for touches on the canvas (keeps HTML buttons
+    // tappable) so browsers don't hijack gameplay touches for gestures.
     window.addEventListener('touchstart', (e) => {
+      if (e.target === this.canvas && e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        checkButtons(t.clientX, t.clientY, true);
+        pressAt(t.clientX, t.clientY, t.identifier);
       }
     }, { passive: false });
 
     window.addEventListener('touchend', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        checkButtons(t.clientX, t.clientY, false);
+        releaseTouch(e.changedTouches[i].identifier);
+      }
+    });
+
+    window.addEventListener('touchcancel', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        releaseTouch(e.changedTouches[i].identifier);
       }
     });
 
     // Mouse fallback
     this.canvas.addEventListener('mousedown', (e) => {
-      checkButtons(e.clientX, e.clientY, true);
+      pressAt(e.clientX, e.clientY, 'mouse');
     });
     window.addEventListener('mouseup', () => {
-      for (const btn of this.buttons) {
-        if (btn.pressed) {
-          btn.pressed = false;
-          this.inputManager.setVirtualButton(btn.id, false);
-        }
-      }
+      releaseTouch('mouse');
     });
   }
 

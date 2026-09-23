@@ -13,6 +13,9 @@ export class Fighter {
     this.y = y;
     this.vx = 0;
     this.vy = 0;
+    // Smoothed horizontal speed used by player walk input (ramps toward the
+    // target instead of snapping, so movement doesn't start/stop as a hard pop)
+    this.moveSpeed = 0;
     this.direction = direction; // 1 = right, -1 = left
 
     // Stats
@@ -192,6 +195,7 @@ export class Fighter {
     this.y = GAME_CONFIG.PHYSICS.GROUND_Y;
     this.vx = 0;
     this.vy = 0;
+    this.moveSpeed = 0;
     this.direction = direction;
     this.state = 'IDLE';
     this.currentMove = null;
