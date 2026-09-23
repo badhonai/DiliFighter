@@ -69,25 +69,29 @@ export class Tsunami extends Fighter {
       // Close combat range (< 120px)
       if (dist < 120) {
         const attackChoice = Math.random();
-        if (attackChoice < 0.35) {
+        if (attackChoice < 0.3) {
           this.startAttack(MOVES.PUNCH_1);
-        } else if (attackChoice < 0.6) {
+        } else if (attackChoice < 0.55) {
           this.startAttack(MOVES.KICK_1);
-        } else if (attackChoice < 0.8) {
+        } else if (attackChoice < 0.72) {
           this.startAttack(MOVES.KICK_DOWN);
+        } else if (attackChoice < 0.85) {
+          this.startAttack(MOVES.HEAVY_SMASH);
         } else {
           // Backpedal to reset spacing
           this.vx = -toPlayerDir * 150;
           this.state = 'WALK_BACK';
         }
-      } 
+      }
       // Mid range (120px - 260px)
       else if (dist >= 120 && dist <= 260) {
         const choice = Math.random();
         if (choice < 0.3) {
           this.startAttack(MOVES.PUNCH_FORWARD);
-        } else if (choice < 0.55) {
+        } else if (choice < 0.5) {
           this.startAttack(MOVES.KICK_FORWARD);
+        } else if (choice < 0.62) {
+          this.startAttack(MOVES.HEAVY_SMASH);
         } else if (choice < 0.8) {
           // Advance forward
           this.vx = toPlayerDir * 190;
@@ -96,14 +100,17 @@ export class Tsunami extends Fighter {
           this.startAttack(MOVES.RANGED_THROW);
           this.rangedCooldown = 2.4;
         }
-      } 
+      }
       // Far range (> 260px)
       else {
         const roll = Math.random();
-        if (roll < 0.75) {
+        if (roll < 0.6) {
           // Close the gap
           this.vx = toPlayerDir * 230;
           this.state = 'WALK_FORWARD';
+        } else if (roll < 0.78 && dist < 600) {
+          // Dash-in to pressure
+          if (this.startDash(toPlayerDir)) return;
         } else if (this.rangedCooldown <= 0) {
           this.startAttack(MOVES.RANGED_THROW);
           this.rangedCooldown = 2.4;

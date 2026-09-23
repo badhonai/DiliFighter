@@ -59,9 +59,11 @@ export class HelpMenu {
 
         <div class="help-section">
           <h3>MOBILE</h3>
-          <div class="help-row">${icon('joystick')}<p><strong>Left joystick</strong> — walk left/right, push <strong>up to jump</strong>, hold <strong>down to crouch</strong> (blocks low hits)</p></div>
+          <div class="help-row">${icon('joystick')}<p><strong>Left joystick</strong> — walk, <strong>up = jump</strong>, <strong>down = crouch</strong> (guards low), <strong>double-tap = dash</strong></p></div>
           <div class="help-row">${icon('punch')}<p><strong>Punch</strong> — fast strike, good for starting combos</p></div>
           <div class="help-row">${icon('kick')}<p><strong>Kick</strong> — slower, heavy damage</p></div>
+          <div class="help-row">${icon('block')}<p><strong>Shield (hold)</strong> — block high &amp; mid attacks</p></div>
+          <div class="help-row">${icon('heavy')}<p><strong>Heavy</strong> — slow crushing smash, huge knockback</p></div>
           <div class="help-row">${icon('ranged')}<p><strong>Kunai</strong> — throw a blade from a distance</p></div>
           <div class="help-row">${icon('shadow')}<p><strong>Shadow Mode</strong> — tap when the cyan bar is full to transform</p></div>
         </div>
@@ -69,12 +71,15 @@ export class HelpMenu {
         <div class="help-section">
           <h3>KEYBOARD</h3>
           <div class="help-grid">
-            <span class="help-key">A / D</span><p>Walk left / right</p>
+            <span class="help-key">A / D</span><p>Walk left / right (←→ also work)</p>
             <span class="help-key">W</span><p>Jump</p>
-            <span class="help-key">S</span><p>Crouch (blocks low hits)</p>
-            <span class="help-key">J</span><p>Punch</p>
-            <span class="help-key">K</span><p>Kick</p>
-            <span class="help-key">L</span><p>Throw kunai</p>
+            <span class="help-key">S</span><p>Crouch (guards low hits)</p>
+            <span class="help-key">A+A / D+D</span><p>Dash (double-tap a direction)</p>
+            <span class="help-key">V or ;</span><p>Block — hold to guard high &amp; mid</p>
+            <span class="help-key">J or Z</span><p>Punch</p>
+            <span class="help-key">K or X</span><p>Kick</p>
+            <span class="help-key">I or B</span><p>Heavy smash</p>
+            <span class="help-key">L or C</span><p>Throw kunai</p>
             <span class="help-key">SPACE</span><p>Shadow Mode</p>
             <span class="help-key">ESC</span><p>Pause</p>
           </div>
@@ -82,13 +87,14 @@ export class HelpMenu {
 
         <div class="help-section">
           <h3>TIPS</h3>
-          <p class="help-text">Hold <strong>away from your opponent</strong> to block high attacks,
-          and crouch to block low ones. Blocking and landing hits fill your <strong>cyan Shadow
+          <p class="help-text"><strong>Hold the shield to block</strong> high &amp; mid attacks, and
+          <strong>crouch to guard low</strong> ones. Blocking and landing hits fill your <strong>cyan Shadow
           bar</strong> — when it's full and glowing, unleash Shadow Mode for
-          <strong>boosted speed and damage</strong> for a limited time.</p>
+          <strong>boosted speed and damage</strong> for a limited time. Dash in to close gaps fast,
+          then open with a Heavy smash.</p>
         </div>
 
-        <p class="help-credit">Icons by game-icons.net (CC BY 3.0) — Lorc &amp; Delapouite</p>
+        <p class="help-credit">Icons by game-icons.net (CC BY 3.0) — Lorc, sbed &amp; Delapouite</p>
       </div>
     `;
     document.body.appendChild(this.overlay);

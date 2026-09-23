@@ -6,6 +6,8 @@ export class TouchButtons {
     this.buttons = [
       { id: 'punch', icon: 'icons/punch.svg', name: 'Punch', x: 1180, y: 550, radius: 36, pressed: false },
       { id: 'kick', icon: 'icons/kick.svg', name: 'Kick', x: 1090, y: 620, radius: 34, pressed: false },
+      { id: 'block', icon: 'icons/block.svg', name: 'Block', x: 0, y: 0, radius: 30, pressed: false },
+      { id: 'heavy', icon: 'icons/heavy.svg', name: 'Heavy', x: 0, y: 0, radius: 30, pressed: false },
       { id: 'ranged', icon: 'icons/ranged.svg', name: 'Ranged', x: 1195, y: 440, radius: 28, pressed: false },
       { id: 'shadow', icon: 'icons/shadow.svg', name: 'Shadow', x: 1070, y: 500, radius: 32, pressed: false },
     ];
@@ -40,11 +42,15 @@ export class TouchButtons {
     const right = 1280 + marginX;
     const bottom = 720 + marginY;
 
+    // 2x3 cluster under the right thumb: core buttons at the bottom,
+    // defense/power in the middle row, utility up top.
     const pos = {
-      punch:  { x: right - 78,  y: bottom - 185, radius: 54 },
-      kick:   { x: right - 188, y: bottom - 96,  radius: 50 },
-      ranged: { x: right - 80,  y: bottom - 330, radius: 44 },
-      shadow: { x: right - 222, y: bottom - 272, radius: 48 },
+      punch:  { x: right - 78,  y: bottom - 88,  radius: 52 },
+      kick:   { x: right - 198, y: bottom - 88,  radius: 50 },
+      block:  { x: right - 78,  y: bottom - 204, radius: 48 },
+      heavy:  { x: right - 198, y: bottom - 204, radius: 48 },
+      ranged: { x: right - 78,  y: bottom - 316, radius: 44 },
+      shadow: { x: right - 198, y: bottom - 316, radius: 48 },
     };
     for (const btn of this.buttons) {
       btn.x = pos[btn.id].x;

@@ -41,6 +41,10 @@ export class Fighter {
     this.comboResetTimer = 0;
     this.punchChainIndex = 0;
     this.kickChainIndex = 0;
+    // Double-tap dash state
+    this.dashTimer = 0;
+    this.dashDir = 0;
+    this.dashFxDone = false;
 
     // Defense & Stun
     this.stunDuration = 0;
@@ -104,6 +108,19 @@ export class Fighter {
       isHigh: m.height === 'HIGH',
       isKnockdown: m.isKnockdown || false,
     });
+  }
+
+  /** Quick burst dash from a double-tap. Cancelled by attacks/stun. */
+  startDash(dir) {
+    if (this.state === 'HIT_STUN' || this.state === 'KNOCKDOWN' || this.state === 'DEAD' || this.state === 'ATTACKING') return false;
+    if (this.y < GAME_CONFIG.PHYSICS.GROUND_Y - 5) return false;
+    this.state = 'DASH';
+    this.dashDir = dir;
+    this.dashTimer = 0.16;
+    this.dashFxDone = false;
+    this.vx = dir * 1050;
+    this.moveSpeed = 0;
+    return true;
   }
 
   startAttack(move) {
@@ -218,6 +235,21 @@ export class Fighter {
       this.direction = opponent.x > this.x ? 1 : -1;
     }
 
+    // Handle dash lifecycle (one-shot burst; attacks cancel it via startAttack)
+    if (this.state === 'DASH') {
+      if (!this.dashFxDone) {
+        this.dashFxDone = true;
+        particleSystem.emitDust(this.x, this.y, 5);
+        particleSystem.emitDashStreaks(this.x, this.y - 45, this.dashDir);
+        soundEngine.playSwing(this.shadowSystem.isActive ? 160 : 200);
+      }
+      this.dashTimer -= dt;
+      if (this.dashTimer <= 0) {
+        this.state = 'IDLE';
+        this.vx = 0;
+      }
+    }
+
     // Handle Attack Phase Progressions
     if (this.state === 'ATTACKING' && this.currentMove) {
       const move = this.currentMove;
@@ -281,11 +313,11 @@ export class Fighter {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
 
-    // Apply ground friction
+    // Apply ground friction (dash holds its burst speed — no friction bleed)
     if (this.y >= GAME_CONFIG.PHYSICS.GROUND_Y) {
       this.y = GAME_CONFIG.PHYSICS.GROUND_Y;
       this.vy = 0;
-      this.vx *= GAME_CONFIG.PHYSICS.FRICTION;
+      this.vx *= this.state === 'DASH' ? 1 : GAME_CONFIG.PHYSICS.FRICTION;
 
       if (this.state === 'JUMP') {
         this.state = 'IDLE';

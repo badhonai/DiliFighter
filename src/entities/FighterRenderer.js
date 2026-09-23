@@ -232,82 +232,102 @@ export class FighterRenderer {
       }
 
       case 'ATTACKING': {
-        this.applyAttackPose(f, pose, progress);
-        break;
-      }
+      this.applyAttackPose(f, pose, progress);
+      break;
+    }
+
+    case 'DASH': {
+      // Explosive lean into the burst (arms swept back, trailing leg)
+      const fwd = f.dashDir * f.direction > 0; // dashing toward facing = forward
+      pose.torso.angle = fwd ? 0.55 : -0.34;
+      pose.torso.y = -52;
+      pose.frontArm.angle1 = fwd ? -1.15 : 0.9;
+      pose.backArm.angle1 = fwd ? -0.95 : 0.7;
+      pose.frontLeg.hipAngle = fwd ? 0.95 : -0.7;
+      pose.backLeg.hipAngle = fwd ? -0.85 : 0.8;
+      pose.backLeg.kneeAngle = 0.9;
+      break;
+    }
     }
 
     return pose;
   }
 
+  /**
+   * Smooth keyframe track: pts = [[t, v], ...] with smoothstep easing
+   * between keys — gives every attack proper anticipation -> snap -> settle
+   * instead of the old pose-teleporting between 3 static stances.
+   */
+  static track(p, pts) {
+    if (p <= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i++) {
+      if (p <= pts[i][0]) {
+        const [t0, v0] = pts[i - 1];
+        const [t1, v1] = pts[i];
+        const u = (p - t0) / (t1 - t0);
+        const s = u * u * (3 - 2 * u);
+        return v0 + (v1 - v0) * s;
+      }
+    }
+    return pts[pts.length - 1][1];
+  }
+
   applyAttackPose(f, pose, p) {
+    const tr = FighterRenderer.track;
     const move = f.currentMove;
     if (!move) return;
 
-    if (move.name.includes('Jab') || move.name.includes('Slash') || move.name.includes('Dao')) {
-      // Punch / Blade slash
-      if (p < 0.3) { // Windup
-        pose.torso.angle = -0.2;
-        pose.frontArm.angle1 = -0.8;
-        pose.frontArm.angle2 = 1.2;
-      } else if (p < 0.7) { // Strike forward
-        pose.torso.angle = 0.3;
-        pose.frontArm.angle1 = 0.1;
-        pose.frontArm.angle2 = 0.1; // fully extended
-      } else { // Recovery
-        pose.torso.angle = 0.1;
-        pose.frontArm.angle1 = 0.3;
-        pose.frontArm.angle2 = 0.7;
-      }
+    if (move.name.includes('Jab') || move.name.includes('Slash') || move.name.includes('Dao')
+        || move.name.includes('Cleave') || move.name.includes('Kunai')) {
+      // Horizontal blade slash / chain punches / kunai throw
+      pose.torso.angle = tr(p, [[0, 0], [0.22, -0.28], [0.42, 0.32], [0.62, 0.3], [1, 0.06]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.4], [0.22, -0.95], [0.42, 0.06], [0.72, 0.1], [1, 0.35]]);
+      pose.frontArm.angle2 = tr(p, [[0, 1.1], [0.26, 1.4], [0.42, 0.05], [0.72, 0.2], [1, 0.75]]);
+      pose.backArm.angle1 = tr(p, [[0, -0.3], [0.3, 0.35], [0.5, -0.55], [1, -0.25]]);
     } else if (move.name.includes('Uppercut') || move.name.includes('Rising')) {
-      // Rising dragon anti-air
-      if (p < 0.3) {
-        pose.torso.y = -40;
-        pose.frontArm.angle1 = 0.8;
-      } else {
-        pose.torso.y = -65;
-        pose.torso.angle = -0.2;
-        pose.frontArm.angle1 = -2.2;
-        pose.frontArm.angle2 = 0.2;
-      }
+      // Rising dragon anti-air: crouch load -> explosive rise
+      pose.torso.y = tr(p, [[0, -55], [0.25, -38], [0.55, -68], [0.85, -62], [1, -55]]);
+      pose.torso.angle = tr(p, [[0, 0], [0.3, 0.14], [0.55, -0.2], [1, 0]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.4], [0.25, 0.95], [0.5, -2.3], [0.8, -2.15], [1, 0.4]]);
+      pose.frontArm.angle2 = tr(p, [[0, 1.1], [0.3, 0.35], [0.5, 0.12], [1, 1.0]]);
+      pose.backArm.angle1 = tr(p, [[0, -0.3], [0.4, -1.1], [0.8, -0.9], [1, -0.3]]);
     } else if (move.name.includes('Thrust') || move.name.includes('Piercer')) {
-      // Lunging thrust
-      pose.torso.angle = 0.45;
-      pose.frontLeg.hipAngle = 0.8;
-      pose.backLeg.hipAngle = -0.9;
-      pose.frontArm.angle1 = 0.05;
-      pose.frontArm.angle2 = 0.05;
-    } else if (move.name.includes('Sweep')) {
-      // Low dragon sweep
-      pose.torso.y = -30;
-      pose.torso.angle = 0.5;
-      pose.frontLeg.hipAngle = 1.4;
-      pose.frontLeg.kneeAngle = 0.1;
-      pose.backLeg.hipAngle = -0.8;
-      pose.backLeg.kneeAngle = 1.4;
-    } else if (move.name.includes('Kick')) {
-      // High or Flying Kick
-      if (p < 0.3) {
-        pose.frontLeg.hipAngle = -0.4;
-        pose.frontLeg.kneeAngle = 1.2;
-      } else if (p < 0.7) {
-        pose.torso.angle = -0.25;
-        pose.frontLeg.hipAngle = 1.3;
-        pose.frontLeg.kneeAngle = 0.05; // full kick extension
-      } else {
-        pose.frontLeg.hipAngle = 0.5;
-        pose.frontLeg.kneeAngle = 0.6;
-      }
+      // Lunging thrust: coil -> full extension
+      pose.torso.angle = tr(p, [[0, 0], [0.2, -0.15], [0.4, 0.48], [1, 0.28]]);
+      pose.frontLeg.hipAngle = tr(p, [[0, 0.25], [0.35, 0.85], [1, 0.7]]);
+      pose.backLeg.hipAngle = tr(p, [[0, -0.35], [0.35, -0.95], [1, -0.8]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.4], [0.2, -0.7], [0.4, 0.04], [1, 0.2]]);
+      pose.frontArm.angle2 = tr(p, [[0, 0.8], [0.25, 1.3], [0.4, 0.04], [1, 0.5]]);
+    } else if (move.name.includes('Sweep') || move.name.includes('Poke')) {
+      // Low attacks: drop down -> leg/poke extends low
+      pose.torso.y = tr(p, [[0, -55], [0.25, -52], [0.42, -28], [0.8, -40], [1, -52]]);
+      pose.torso.angle = tr(p, [[0, 0.25], [0.3, 0.35], [0.5, 0.55], [1, 0.2]]);
+      pose.frontLeg.hipAngle = tr(p, [[0, 0.9], [0.3, 0.4], [0.5, 1.45], [1, 1.0]]);
+      pose.frontLeg.kneeAngle = tr(p, [[0, -1.4], [0.3, -0.8], [0.5, 0.08], [1, -1.0]]);
+      pose.backLeg.hipAngle = tr(p, [[0, -0.6], [0.5, -0.85], [1, -0.65]]);
+      pose.backLeg.kneeAngle = tr(p, [[0, 1.6], [0.5, 1.4], [1, 1.55]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.8], [0.4, 0.2], [0.55, 0.05], [1, 0.7]]);
+    } else if (move.name.includes('Kick') || move.name.includes('Roundhouse')) {
+      // Kicks: chamber load -> snap extension -> relaxed recovery
+      pose.torso.angle = tr(p, [[0, 0.12], [0.25, 0.12], [0.5, -0.28], [0.8, -0.2], [1, -0.02]]);
+      pose.frontLeg.hipAngle = tr(p, [[0, 0.25], [0.25, -0.5], [0.45, 1.35], [0.72, 1.25], [1, 0.3]]);
+      pose.frontLeg.kneeAngle = tr(p, [[0, -0.3], [0.25, 1.3], [0.45, 0.05], [0.72, 0.2], [1, -0.3]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.4], [0.3, -0.6], [0.55, -0.9], [1, 0.4]]);
+      pose.backArm.angle1 = tr(p, [[0, -0.2], [0.4, 0.5], [0.7, 0.4], [1, -0.2]]);
     } else if (move.name.includes('Eruption')) {
-      // Ground slam eruption
-      if (p < 0.4) {
-        pose.torso.y = -65;
-        pose.frontArm.angle1 = -2.0;
-      } else {
-        pose.torso.y = -35;
-        pose.torso.angle = 0.6;
-        pose.frontArm.angle1 = 1.2;
-      }
+      // Ground slam eruption: gather up -> slam down
+      pose.torso.y = tr(p, [[0, -55], [0.35, -68], [0.5, -32], [0.8, -42], [1, -52]]);
+      pose.torso.angle = tr(p, [[0, 0], [0.4, -0.15], [0.55, 0.65], [1, 0.15]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.3], [0.38, -2.1], [0.52, 1.25], [1, 0.3]]);
+      pose.backArm.angle1 = tr(p, [[0, -0.2], [0.38, -1.8], [0.52, 1.0], [1, -0.2]]);
+    } else if (move.name.includes('Splitter')) {
+      // HEAVY_SMASH: rise tall -> massive two-handed overhead slam
+      pose.torso.y = tr(p, [[0, -55], [0.3, -64], [0.48, -42], [0.75, -46], [1, -55]]);
+      pose.torso.angle = tr(p, [[0, 0], [0.3, -0.35], [0.48, 0.58], [0.72, 0.5], [1, 0.08]]);
+      pose.frontArm.angle1 = tr(p, [[0, 0.4], [0.3, -2.6], [0.48, 0.95], [0.75, 0.8], [1, 0.4]]);
+      pose.frontArm.angle2 = tr(p, [[0, 1.1], [0.3, 0.45], [0.48, 0.3], [1, 0.9]]);
+      pose.backArm.angle1 = tr(p, [[0, -0.2], [0.3, -2.45], [0.48, 0.75], [0.75, 0.6], [1, -0.2]]);
+      pose.backArm.angle2 = tr(p, [[0, 0.6], [0.3, 0.35], [0.48, 0.35], [1, 0.6]]);
     }
   }
 

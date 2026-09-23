@@ -45,6 +45,10 @@ export class Engine {
     // Audio edge-detection state (rising edges of game events)
     this.audioState = { lastTimerCeil: null, shadowReadyP1: false, shadowReadyP2: false };
 
+    // Hitstop: fighters/projectiles freeze for a few frames on impact —
+    // THE ingredient that makes hits feel heavy (classic fighting games)
+    this.hitstop = 0;
+
     // Time Accumulator
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -135,6 +139,10 @@ export class Engine {
     // Scale dt for slow-mo
     const effectiveDt = dt * this.timeScale;
 
+    // Hitstop freeze for combat actors (particles/camera/stage keep flowing)
+    this.hitstop = Math.max(0, this.hitstop - dt);
+    const actorDt = this.hitstop > 0 ? 0 : effectiveDt;
+
     // State machine updates
     if (this.matchState === 'INTRO') {
       this.stateTimer -= effectiveDt;
@@ -143,7 +151,7 @@ export class Engine {
         this.announcer.announce('FIGHT!', '', 1.2, '#f59e0b');
       }
     } else if (this.matchState === 'FIGHTING') {
-      this.matchTimer = Math.max(0, this.matchTimer - effectiveDt);
+      this.matchTimer = Math.max(0, this.matchTimer - actorDt);
 
       // Timeout check
       if (this.matchTimer <= 0) {
@@ -159,7 +167,7 @@ export class Engine {
     // Input & Character updates
     if (this.matchState === 'FIGHTING') {
       this.player.handleInput(this.inputManager, this.soundEngine);
-      this.opponent.updateAI(effectiveDt, this.player, this.soundEngine);
+      this.opponent.updateAI(actorDt, this.player, this.soundEngine);
     }
 
     // Detect Shadow Mode triggers for announcements
@@ -169,20 +177,22 @@ export class Engine {
     }
 
     // Update Fighters
-    this.player.update(effectiveDt, this.opponent, this.soundEngine, this.particleSystem, this.projectiles);
+    this.player.update(actorDt, this.opponent, this.soundEngine, this.particleSystem, this.projectiles);
     this.opponent.update(effectiveDt, this.player, this.soundEngine, this.particleSystem, this.projectiles);
 
     // Update Projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
-      proj.update(effectiveDt, { left: GAME_CONFIG.PHYSICS.STAGE_LEFT, right: GAME_CONFIG.PHYSICS.STAGE_RIGHT }, this.particleSystem);
+      proj.update(actorDt, { left: GAME_CONFIG.PHYSICS.STAGE_LEFT, right: GAME_CONFIG.PHYSICS.STAGE_RIGHT }, this.particleSystem);
       if (!proj.active) {
         this.projectiles.splice(i, 1);
       }
     }
 
-    // Combat & Collision Evaluation
-    this.evaluateCombat();
+    // Combat & Collision Evaluation (frozen during hitstop)
+    if (this.hitstop <= 0) {
+      this.evaluateCombat();
+    }
 
     // Adaptive audio (music theme/intensity, event edge-triggered stingers)
     const isAnyShadow = this.player.shadowSystem.isActive || this.opponent.shadowSystem.isActive;
@@ -211,7 +221,8 @@ export class Engine {
           this.hud.showCombo(1, this.player.comboCount);
 
           const result = this.opponent.takeHit(p1Hitbox, this.player, this.soundEngine, this.particleSystem);
-          this.camera.shake(p1Hitbox.properties.isHeavy ? 10 : 5, 0.2);
+          this.camera.shake(p1Hitbox.properties.isHeavy ? 14 : 8, 0.22);
+          this.applyHitFeel(result, p1Hitbox.properties.isHeavy);
 
           if (result === 'ko') {
             this.triggerKO(this.player, this.opponent);
@@ -232,7 +243,8 @@ export class Engine {
           this.hud.showCombo(2, this.opponent.comboCount);
 
           const result = this.player.takeHit(p2Hitbox, this.opponent, this.soundEngine, this.particleSystem);
-          this.camera.shake(p2Hitbox.properties.isHeavy ? 10 : 5, 0.2);
+          this.camera.shake(p2Hitbox.properties.isHeavy ? 14 : 8, 0.22);
+          this.applyHitFeel(result, p2Hitbox.properties.isHeavy);
 
           if (result === 'ko') {
             this.triggerKO(this.opponent, this.player);
@@ -253,13 +265,27 @@ export class Engine {
           proj.active = false;
           this.soundEngine.playRangedImpact();
           const result = target.takeHit(projHitbox, proj.owner, this.soundEngine, this.particleSystem);
-          this.camera.shake(6, 0.15);
+          this.camera.shake(8, 0.18);
+          this.applyHitFeel(result, projHitbox.properties.isHeavy);
           if (result === 'ko') {
             this.triggerKO(proj.owner, target);
           }
           break;
         }
       }
+    }
+  }
+
+  /** Hit feel: hitstop freeze frames + screen flash on heavy impacts. */
+  applyHitFeel(result, isHeavy) {
+    if (result === 'blocked') {
+      this.hitstop = Math.max(this.hitstop, 0.03);
+    } else if (result === 'hit') {
+      this.hitstop = Math.max(this.hitstop, isHeavy ? 0.09 : 0.055);
+      if (isHeavy) this.hud.flash(0.2);
+    } else if (result === 'ko') {
+      this.hitstop = Math.max(this.hitstop, 0.12);
+      this.hud.flash(0.4);
     }
   }
 

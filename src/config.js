@@ -21,7 +21,7 @@ export const GAME_CONFIG = {
   MATCH: {
     ROUND_TIME: 60,
     ROUNDS_TO_WIN: 2,
-    MAX_HEALTH: 1000,
+    MAX_HEALTH: 1500,
     MAX_SHADOW: 100,
     SHADOW_GAIN_ON_HIT: 12,
     SHADOW_GAIN_ON_DAMAGE: 6,
@@ -37,6 +37,9 @@ export const GAME_CONFIG = {
   },
 
   KEYS: {
+    // Two mirrored clusters: left hand (ZXCVB) + right hand (JKL;I) so the
+    // player can pick WASD or arrows for movement and always reach attacks
+    // with a free hand.
     MOVE_LEFT: ['KeyA', 'ArrowLeft'],
     MOVE_RIGHT: ['KeyD', 'ArrowRight'],
     JUMP: ['KeyW', 'ArrowUp'],
@@ -44,6 +47,8 @@ export const GAME_CONFIG = {
     PUNCH: ['KeyJ', 'KeyZ'],
     KICK: ['KeyK', 'KeyX'],
     RANGED: ['KeyL', 'KeyC'],
+    HEAVY: ['KeyI', 'KeyB'],
+    BLOCK: ['Semicolon', 'KeyV'],
     SHADOW: ['Space', 'KeyU'],
     PAUSE: ['Escape', 'KeyP'],
   }

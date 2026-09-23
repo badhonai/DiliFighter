@@ -10,18 +10,58 @@ export class ParticleSystem {
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = (isHeavy ? 200 : 120) + Math.random() * (isHeavy ? 250 : 150);
+      const speed = (isHeavy ? 280 : 190) + Math.random() * (isHeavy ? 360 : 240);
       this.particles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: (isHeavy ? 4.5 : 3) + Math.random() * 3,
+        size: (isHeavy ? 5.5 : 3.6) + Math.random() * (isHeavy ? 4 : 3),
         color: Math.random() > 0.4 ? baseColor : secondary,
         alpha: 1.0,
-        life: 0.25 + Math.random() * 0.2,
-        maxLife: 0.45,
+        life: 0.3 + Math.random() * 0.25,
+        maxLife: 0.55,
         type: 'spark',
+      });
+    }
+
+    // Heavy / shadow hits punctuate with an expanding shockwave ring
+    if (isHeavy || isShadow) {
+      this.emitShockwave(x, y, isShadow);
+    }
+  }
+
+  /** Expanding impact ring — the "punch" that makes heavy hits LAND. */
+  emitShockwave(x, y, isShadow = false) {
+    this.particles.push({
+      x, y,
+      vx: 0, vy: 0,
+      radius: 8,
+      radiusGrowth: 520,
+      lineWidth: 7,
+      color: isShadow ? '#00f0ff' : '#ffe9a8',
+      alpha: 0.95,
+      life: 0.28,
+      maxLife: 0.28,
+      type: 'ring',
+    });
+  }
+
+  /** Horizontal speed streaks for the double-tap dash. */
+  emitDashStreaks(x, y, dir, color = 'rgba(226, 240, 255, 0.85)') {
+    for (let i = 0; i < 6; i++) {
+      this.particles.push({
+        x: x - dir * (Math.random() * 14),
+        y: y + (Math.random() * 60 - 30),
+        vx: -dir * (420 + Math.random() * 320),
+        vy: (Math.random() * 40 - 20),
+        size: 1.6 + Math.random() * 1.4,
+        len: 26 + Math.random() * 30,
+        color: Math.random() > 0.4 ? color : '#38bdf8',
+        alpha: 0.9,
+        life: 0.16 + Math.random() * 0.1,
+        maxLife: 0.26,
+        type: 'streak',
       });
     }
   }
@@ -106,6 +146,8 @@ export class ParticleSystem {
         p.vy += 20 * dt;
       } else if (p.type === 'spark') {
         p.vy += 300 * dt; // gravity on sparks
+      } else if (p.type === 'ring') {
+        p.radius += p.radiusGrowth * dt;
       }
     }
 
@@ -158,6 +200,22 @@ export class ParticleSystem {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
+      } else if (p.type === 'ring') {
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.lineWidth * p.alpha;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (p.type === 'streak') {
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.size;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * (p.len / 400), p.y - p.vy * 0.04);
+        ctx.stroke();
       } else if (p.type === 'dust') {
         ctx.fillStyle = p.color;
         ctx.beginPath();

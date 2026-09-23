@@ -29,6 +29,9 @@ export class Dili extends Fighter {
     const isKick = input.isActionJustPressed('kick');
     const isRanged = input.isActionJustPressed('ranged');
     const isShadow = input.isActionJustPressed('shadow');
+    const isHeavy = input.isActionJustPressed('heavy');
+    const isBlocking = input.isActionDown('block');
+    const dashDir = input.consumeDash();
 
     // --- Shadow Mode Activation & Abilities ---
     if (isShadow) {
@@ -95,8 +98,19 @@ export class Dili extends Fighter {
       return;
     }
 
+    if (isHeavy) {
+      this.startAttack(MOVES.HEAVY_SMASH);
+      return;
+    }
+
     // --- Movement / Neutral States ---
     if (this.state === 'ATTACKING') return;
+
+    // Double-tap dash (startDash validates state/ground)
+    if (dashDir !== 0 && this.startDash(dashDir)) {
+      return;
+    }
+    if (this.state === 'DASH') return; // hold the burst velocity
 
     // Jump
     if (isJumping && this.y >= 575) {
@@ -106,12 +120,23 @@ export class Dili extends Fighter {
       return;
     }
 
-    // Crouch
+    // Crouch (also guards low attacks)
     if (isCrouching && this.y >= 575) {
       this.state = 'CROUCH';
       this.vx = 0;
       this.moveSpeed = 0;
       return;
+    }
+
+    // Block: hold the shield to guard high/mid attacks (grounded)
+    if (isBlocking && this.y >= 575) {
+      this.state = 'BLOCK';
+      this.vx = 0;
+      this.moveSpeed = 0;
+      return;
+    }
+    if (this.state === 'BLOCK' && !isBlocking) {
+      this.state = 'IDLE';
     }
 
     // Walk Left / Right — accelerate smoothly toward the target speed

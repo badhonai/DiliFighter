@@ -10,7 +10,14 @@ export class InputManager {
       kick: false,
       ranged: false,
       shadow: false,
+      block: false,
+      heavy: false,
     };
+
+    // Double-tap dash: a second tap of the same direction within 280 ms
+    // (keyboard edge or stick flick) queues a dash, consumed by the fighter.
+    this.lastTap = { dir: 0, time: 0 };
+    this.dashQueued = { dir: 0, time: 0 };
     this.virtualJustPressed = new Set();
     // Digital state derived from the analog stick, with hysteresis so the
     // fighter doesn't flicker between states near the dead zone edge.
@@ -26,10 +33,13 @@ export class InputManager {
     window.addEventListener('keydown', (e) => {
       // Don't capture standard browser reload / dev tools
       if (e.key === 'F5' || e.key === 'F12' || (e.ctrlKey && e.key === 'r')) return;
-      
+
       const code = e.code;
       if (!this.keysDown.has(code)) {
         this.justPressed.add(code);
+        // Rising edge (no auto-repeat) — feed the double-tap dash detector
+        if (GAME_CONFIG.KEYS.MOVE_LEFT.includes(code)) this.noteDirectionTap(-1);
+        if (GAME_CONFIG.KEYS.MOVE_RIGHT.includes(code)) this.noteDirectionTap(1);
       }
       this.keysDown.add(code);
 
@@ -55,6 +65,27 @@ export class InputManager {
     this.virtualJustPressed.clear();
   }
 
+  /** Second tap of the same direction within 280 ms queues a dash. */
+  noteDirectionTap(dir) {
+    const now = performance.now();
+    if (this.lastTap.dir === dir && now - this.lastTap.time < 280) {
+      this.dashQueued = { dir, time: now };
+    }
+    this.lastTap = { dir, time: now };
+  }
+
+  /** Fighter polls this every frame; returns -1 | 0 | 1 exactly once. */
+  consumeDash() {
+    if (this.dashQueued.dir === 0) return 0;
+    if (performance.now() - this.dashQueued.time > 200) {
+      this.dashQueued = { dir: 0, time: 0 };
+      return 0; // staled out (player did something else first)
+    }
+    const dir = this.dashQueued.dir;
+    this.dashQueued = { dir: 0, time: 0 };
+    return dir;
+  }
+
   isActionDown(actionName) {
     const keyList = GAME_CONFIG.KEYS[actionName.toUpperCase()];
     if (keyList && keyList.some(k => this.keysDown.has(k))) return true;
@@ -68,6 +99,8 @@ export class InputManager {
     if (actionName === 'kick') return this.virtualButtons.kick;
     if (actionName === 'ranged') return this.virtualButtons.ranged;
     if (actionName === 'shadow') return this.virtualButtons.shadow;
+    if (actionName === 'block') return this.virtualButtons.block;
+    if (actionName === 'heavy') return this.virtualButtons.heavy;
 
     return false;
   }
@@ -85,8 +118,12 @@ export class InputManager {
     const s = this.axisState;
 
     // Hysteresis: state flips ON at ENTER, OFF at EXIT (prevents dead-zone flicker)
+    const wasLeft = s.left, wasRight = s.right;
     s.left = x < -ENTER ? true : x > -EXIT ? false : s.left;
     s.right = x > ENTER ? true : x < EXIT ? false : s.right;
+    // Stick flicks feed the double-tap dash detector too
+    if (s.left && !wasLeft) this.noteDirectionTap(-1);
+    if (s.right && !wasRight) this.noteDirectionTap(1);
     const wasUp = s.up;
     s.up = y < -ENTER_Y ? true : y > -EXIT_Y ? false : s.up;
     s.down = y > ENTER_Y ? true : y < EXIT_Y ? false : s.down;

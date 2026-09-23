@@ -20,6 +20,18 @@ export class HUD {
     this.p2TrailingHealth = GAME_CONFIG.MATCH.MAX_HEALTH;
     this.comboDisplay = { p1: { count: 0, timer: 0 }, p2: { count: 0, timer: 0 } };
     this.time = 0; // drives all pulsing / shimmer animations
+    this.flashAlpha = 0; // heavy-hit screen flash
+
+    // Static keyboard legend — desktop only (fine pointer, no touchscreen)
+    this.showKeyHints = typeof window !== 'undefined'
+      && window.matchMedia
+      && window.matchMedia('(pointer: fine)').matches
+      && !(navigator.maxTouchPoints > 0);
+  }
+
+  /** White flash overlay for heavy/K.O. impacts. */
+  flash(strength) {
+    this.flashAlpha = Math.max(this.flashAlpha, strength);
   }
 
   showCombo(playerNum, count) {
@@ -49,6 +61,9 @@ export class HUD {
     // Combo timers
     if (this.comboDisplay.p1.timer > 0) this.comboDisplay.p1.timer -= dt;
     if (this.comboDisplay.p2.timer > 0) this.comboDisplay.p2.timer -= dt;
+
+    // Screen flash decays fast
+    if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - 2.8 * dt);
   }
 
   render(ctx, p1, p2, matchTimer, roundNum) {
@@ -66,6 +81,15 @@ export class HUD {
 
     // 3. Hit Combo Popups
     this.renderCombos(ctx);
+
+    // 4. Desktop keyboard legend
+    if (this.showKeyHints) this.renderKeyHints(ctx);
+
+    // 5. Heavy-hit screen flash (above everything else)
+    if (this.flashAlpha > 0.003) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${this.flashAlpha.toFixed(3)})`;
+      ctx.fillRect(0, 0, w, GAME_CONFIG.WORLD_HEIGHT);
+    }
 
     ctx.restore();
   }
@@ -504,6 +528,62 @@ export class HUD {
     ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
+    ctx.restore();
+  }
+
+  /** Bottom-center keyboard legend (desktop only) — two rows of key chips. */
+  renderKeyHints(ctx) {
+    const rows = [
+      [['A/D', 'MOVE'], ['W', 'JUMP'], ['S', 'CROUCH'], ['V or ;', 'BLOCK'], ['←← / →→', 'DASH']],
+      [['J', 'PUNCH'], ['K', 'KICK'], ['I', 'HEAVY'], ['L', 'RANGED'], ['SPACE', 'SHADOW'], ['ESC', 'PAUSE']],
+    ];
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    rows.forEach((row, ri) => {
+      const y = 688 + ri * 19;
+      // Measure the full row first so it can be centered
+      ctx.font = '700 12px "Rajdhani", sans-serif';
+      let total = 0;
+      const parts = row.map(([key, label]) => {
+        const kw = ctx.measureText(key).width + 14;    // chip padding
+        const lw = ctx.measureText(' ' + label).width; // label after chip
+        const item = { key, label, kw, lw };
+        total += kw + lw + 16;
+        return item;
+      });
+      total -= 16;
+
+      // One translucent backing pill for the row
+      const x0 = (GAME_CONFIG.WORLD_WIDTH - total) / 2;
+      ctx.fillStyle = 'rgba(8, 12, 24, 0.62)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x0 - 8, y - 10, total + 16, 20, 5);
+      else ctx.rect(x0 - 8, y - 10, total + 16, 20);
+      ctx.fill();
+
+      // Chips + labels
+      let x = x0;
+      for (const item of parts) {
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.16)';
+        ctx.strokeStyle = 'rgba(103, 232, 249, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y - 7.5, item.kw, 15, 3);
+        else ctx.rect(x, y - 7.5, item.kw, 15);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#7dd3fc';
+        ctx.textAlign = 'center';
+        ctx.fillText(item.key, x + item.kw / 2, y + 0.5);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(' ' + item.label, x + item.kw, y + 0.5);
+        x += item.kw + item.lw + 16;
+      }
+    });
     ctx.restore();
   }
 

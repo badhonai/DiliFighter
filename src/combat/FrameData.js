@@ -138,6 +138,20 @@ export const MOVES = {
     isKnockdown: true,
   },
 
+  // --- Dedicated Heavy Attack (I / B key or HEAVY touch button) ---
+  HEAVY_SMASH: {
+    name: 'Mountain Splitter',
+    startup: 14,
+    active: 6,
+    recovery: 26,
+    damage: 105,
+    stunFrames: 32,
+    knockback: { x: 340, y: -170 },
+    hitbox: { offsetX: 80, offsetY: -85, w: 80, h: 45 },
+    height: 'MID',
+    isHeavy: true,
+  },
+
   // --- Ranged Attack ---
   RANGED_THROW: {
     name: 'Shadow Kunai',
