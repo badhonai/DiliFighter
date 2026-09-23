@@ -114,12 +114,12 @@ export class VirtualJoystick {
       }
     };
 
-    // Touch events. preventDefault is called ONLY for touches that started
-    // on the game canvas — this stops the browser hijacking gameplay touches
-    // for scroll/pinch gestures (which fires touchcancel and kills the stick
-    // mid-move), while leaving HTML buttons (help, fullscreen) tappable.
+    // Touches that start on an HTML button/overlay belong to that element —
+    // they must never engage the joystick (e.g. the music/help buttons sit
+    // inside the stick's activation zone on some screens).
     window.addEventListener('touchstart', (e) => {
-      if (e.target === this.canvas && e.cancelable) e.preventDefault();
+      if (e.target !== this.canvas) return;
+      if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         handleStart(t.clientX, t.clientY, t.identifier);

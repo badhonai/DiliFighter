@@ -23,6 +23,13 @@ export class SoundEngine {
     this.initialized = false;
     this.music = new MusicEngine(this);
 
+    // Music-only toggle (SFX stay on). Persisted across sessions.
+    try {
+      this.musicEnabled = localStorage.getItem('dilifighter_music') !== 'off';
+    } catch (e) {
+      this.musicEnabled = true;
+    }
+
     // Register autoplay-unlock gestures IMMEDIATELY. They were previously
     // added inside init() — which is only reachable via resume(), which no
     // play* call could reach while ctx was still null => audio deadlocked
@@ -60,7 +67,7 @@ export class SoundEngine {
         this.sfxBus.connect(this.masterGain);
 
         this.musicBus = this.ctx.createGain();
-        this.musicBus.gain.value = 0.34;
+        this.musicBus.gain.value = this.musicEnabled ? SoundEngine.MUSIC_LEVEL : 0;
         this.musicBus.connect(this.masterGain);
 
         this.initialized = true;
@@ -86,14 +93,34 @@ export class SoundEngine {
     return this.muted;
   }
 
-  /** Duck music while the pause menu is open (30% -> 4%). */
+  /** Duck music while the pause menu is open (34% -> 4%). */
   setPaused(paused) {
     if (!this.musicBus || !this.ctx) return;
     const t = this.ctx.currentTime;
     this.musicBus.gain.cancelScheduledValues(t);
     this.musicBus.gain.setValueAtTime(this.musicBus.gain.value, t);
-    this.musicBus.gain.linearRampToValueAtTime(paused ? 0.04 : 0.34, t + 0.25);
+    const rest = this.musicEnabled ? SoundEngine.MUSIC_LEVEL : 0;
+    this.musicBus.gain.linearRampToValueAtTime(paused ? 0.04 : rest, t + 0.25);
   }
+
+  /** Music on/off (SFX unaffected). Returns the new state. */
+  toggleMusic() {
+    this.musicEnabled = !this.musicEnabled;
+    try {
+      localStorage.setItem('dilifighter_music', this.musicEnabled ? 'on' : 'off');
+    } catch (e) { /* private mode etc. — stay session-local */ }
+    if (this.musicBus && this.ctx) {
+      const t = this.ctx.currentTime;
+      this.musicBus.gain.cancelScheduledValues(t);
+      this.musicBus.gain.setValueAtTime(this.musicBus.gain.value, t);
+      this.musicBus.gain.linearRampToValueAtTime(
+        this.musicEnabled ? SoundEngine.MUSIC_LEVEL : 0, t + 0.2
+      );
+    }
+    return this.musicEnabled;
+  }
+
+  static MUSIC_LEVEL = 0.34;
 
   /** Polled from the game loop: drives the adaptive score. */
   syncMusic({ theme, intensity, urgent, shadow }) {
@@ -404,25 +431,101 @@ export class SoundEngine {
     });
   }
 
-  // Match victory: bright rising sting (minor → Picardy major)
+  /**
+   * Match victory: heroic fanfare. Timpani-driven brass stabs
+   * (A — A — C#m turn) resolve into a sustained A-major chord with an
+   * ascending sparkle and a gong tail. ~3s.
+   */
   playVictory() {
     if (this.muted) return;
     this.resume();
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    [440, 554.37, 659.25, 880, 1108.73].forEach((freq, idx) => {
+    const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+    // Brass voice: 2 detuned saws through a lowpass, quick brass-y attack
+    const brass = (freq, tt, dur, vol) => {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2100, tt);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, tt);
+      g.gain.exponentialRampToValueAtTime(vol, tt + 0.03);
+      g.gain.exponentialRampToValueAtTime(vol * 0.7, tt + dur * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.0001, tt + dur);
+      filter.connect(g);
+      g.connect(this.sfxBus);
+      for (const det of [-6, 6]) {
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, tt);
+        osc.detune.setValueAtTime(det, tt);
+        osc.connect(filter);
+        osc.start(tt);
+        osc.stop(tt + dur + 0.05);
+      }
+    };
+
+    // Timpani accent: deep sine drop + skin thud
+    const timp = (tt, vol) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(92, tt);
+      osc.frequency.exponentialRampToValueAtTime(36, tt + 0.2);
+      g.gain.setValueAtTime(vol, tt);
+      g.gain.exponentialRampToValueAtTime(0.001, tt + 0.28);
+      osc.connect(g);
+      g.connect(this.sfxBus);
+      osc.start(tt);
+      osc.stop(tt + 0.3);
+      this.playSweptNoise(tt, 'lowpass', 420, 0.05, 0.1 * vol, null, 0.7);
+    };
+
+    // Fanfare rhythm: stab — stab — higher stab — RESOLVE
+    const A4 = midi(69), Cs5 = midi(73), E5 = midi(76), A5 = midi(81);
+    const stab1 = [A4, E5];
+    const stab2 = [A4, E5];
+    const stab3 = [Cs5, A5];
+    const resolve = [A4, Cs5, E5];
+
+    [stab1, stab2, stab3].forEach((chord, i) => {
+      const tt = t + i * 0.18;
+      chord.forEach((f) => brass(f, tt, 0.22, 0.16));
+      timp(tt, 0.5);
+    });
+
+    const tr = t + 0.62; // resolution moment
+    resolve.forEach((f) => brass(f, tr, 1.7, 0.15));
+    timp(tr, 0.75);
+
+    // Ascending sparkle over the resolve (A major arpeggio doubling up)
+    [81, 85, 88, 93].forEach((m, idx) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, t + idx * 0.09);
-      gain.gain.setValueAtTime(0.22, t + idx * 0.09);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.09 + 1.4);
+      osc.frequency.setValueAtTime(midi(m), tr + 0.08 + idx * 0.07);
+      gain.gain.setValueAtTime(0.14, tr + 0.08 + idx * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, tr + 0.08 + idx * 0.07 + 1.6);
       osc.connect(gain);
       gain.connect(this.sfxBus);
-      osc.start(t + idx * 0.09);
-      osc.stop(t + idx * 0.09 + 1.5);
+      osc.start(tr + 0.08 + idx * 0.07);
+      osc.stop(tr + 0.08 + idx * 0.07 + 1.7);
     });
-    this.playGong();
+
+    // Gong tail seals it
+    [130, 260, 390].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, tr);
+      gain.gain.setValueAtTime(0.28 / (idx + 1), tr);
+      gain.gain.exponentialRampToValueAtTime(0.0001, tr + 2.0);
+      osc.connect(gain);
+      gain.connect(this.sfxBus);
+      osc.start(tr);
+      osc.stop(tr + 2.1);
+    });
   }
 
   // Match defeat: slow descending dark chords

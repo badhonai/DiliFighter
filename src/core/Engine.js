@@ -11,6 +11,7 @@ import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { TouchButtons } from '../ui/TouchButtons.js';
 import { MatchAnnouncer } from '../ui/MatchAnnouncer.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
+import { MusicToggle } from '../ui/MusicToggle.js';
 
 export class Engine {
   constructor(canvas) {
@@ -28,6 +29,7 @@ export class Engine {
     this.joystick = new VirtualJoystick(this.inputManager, this.canvas);
     this.touchButtons = new TouchButtons(this.inputManager, this.canvas);
     this.pauseMenu = new PauseMenu(this);
+    this.musicToggle = new MusicToggle(this.soundEngine);
 
     // Entities
     this.player = new Dili(350, GAME_CONFIG.PHYSICS.GROUND_Y);

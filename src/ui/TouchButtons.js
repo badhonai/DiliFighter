@@ -120,10 +120,11 @@ export class TouchButtons {
       this.heldBy.delete(id);
     };
 
-    // preventDefault only for touches on the canvas (keeps HTML buttons
-    // tappable) so browsers don't hijack gameplay touches for gestures.
+    // Only touches that start on the canvas count as button presses — taps
+    // on HTML buttons must never activate the on-screen attack buttons.
     window.addEventListener('touchstart', (e) => {
-      if (e.target === this.canvas && e.cancelable) e.preventDefault();
+      if (e.target !== this.canvas) return;
+      if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         pressAt(t.clientX, t.clientY, t.identifier);

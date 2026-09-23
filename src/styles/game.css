@@ -460,3 +460,34 @@ html, body {
   height: 20px;
   display: block;
 }
+
+/* Music on/off — third icon in the top-left column, under the manual button */
+#music-toggle-btn {
+  position: fixed;
+  top: 104px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  color: #38bdf8;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+#music-toggle-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+}
+#music-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+#music-toggle-btn.off {
+  color: #64748b;
+  border-color: rgba(100, 116, 139, 0.45);
+}

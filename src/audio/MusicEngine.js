@@ -108,7 +108,7 @@ export class MusicEngine {
 
   tick() {
     if (!this.ctx || !this.running) return;
-    if (this.se.muted) {
+    if (this.se.muted || !this.se.musicEnabled) {
       this.nextNoteTime = this.ctx.currentTime + 0.05;
       return;
     }
