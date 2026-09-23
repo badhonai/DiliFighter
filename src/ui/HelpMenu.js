@@ -7,6 +7,25 @@ export class HelpMenu {
   constructor() {
     this.createDOM();
     this.bindEvents();
+    this.maybeAutoOpenFirstVisit();
+  }
+
+  /**
+   * First-time visitors get the guide opened automatically; when they close
+   * it, the "?" button pulses so they learn where the guide lives for later.
+   */
+  maybeAutoOpenFirstVisit() {
+    const KEY = 'dilifighter_guide_seen';
+    let seen = false;
+    try { seen = localStorage.getItem(KEY) === '1'; } catch (e) { /* private mode */ }
+    if (seen) return;
+
+    this.isFirstVisit = true;
+    this.markSeen = () => {
+      try { localStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ }
+    };
+    // Small delay so the page settles (and portrait users rotate first)
+    setTimeout(() => this.open(), 800);
   }
 
   createDOM() {
@@ -92,9 +111,16 @@ export class HelpMenu {
 
   open() {
     this.overlay.classList.add('active');
+    this.helpBtn.classList.remove('attention'); // user found the guide — stop hinting
   }
 
   close() {
     this.overlay.classList.remove('active');
+    if (this.isFirstVisit) {
+      this.isFirstVisit = false;
+      if (this.markSeen) this.markSeen();
+      // Pulse the "?" so players learn the guide lives behind it
+      this.helpBtn.classList.add('attention');
+    }
   }
 }

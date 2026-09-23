@@ -82,6 +82,35 @@ html, body {
   background: rgba(0, 240, 255, 0.15);
 }
 
+/* First-visit attention pulse: shown after the auto-opened guide is closed,
+   so players learn the guide lives behind the "?" button */
+#help-toggle-btn.attention {
+  animation: help-attention-bounce 1.6s ease-in-out infinite;
+  border-color: #00f0ff;
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+}
+
+#help-toggle-btn.attention::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 2px solid rgba(0, 240, 255, 0.85);
+  border-radius: 11px;
+  animation: help-attention-ring 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes help-attention-ring {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  100% { transform: scale(2.0); opacity: 0;   }
+}
+
+@keyframes help-attention-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
 /* Help Guide Modal */
 #help-modal {
   position: fixed;
