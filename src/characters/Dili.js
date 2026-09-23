@@ -13,9 +13,34 @@ export class Dili extends Fighter {
     });
 
     this.chainTimeout = 0;
+    // Buffered attack press ({action, time}) — see handleInput
+    this.inputBuffer = null;
   }
 
   handleInput(input, soundEngine) {
+    const now = performance.now();
+
+    // INPUT BUFFER: presses made while stunned/knocked down/attacking are
+    // remembered for a short window and executed the first moment the
+    // fighter can act — mashing during enemy pressure is never eaten.
+    const pressList = [
+      ['punch', input.isActionJustPressed('punch')],
+      ['kick', input.isActionJustPressed('kick')],
+      ['heavy', input.isActionJustPressed('heavy')],
+      ['ranged', input.isActionJustPressed('ranged')],
+    ];
+    for (const [action, pressed] of pressList) {
+      if (pressed) this.inputBuffer = { action, time: now };
+    }
+    if (this.inputBuffer && now - this.inputBuffer.time > 220) this.inputBuffer = null;
+    const takeBuffered = (action) => {
+      if (this.inputBuffer && this.inputBuffer.action === action) {
+        this.inputBuffer = null;
+        return true;
+      }
+      return false;
+    };
+
     if (this.state === 'HIT_STUN' || this.state === 'KNOCKDOWN' || this.state === 'DEAD') {
       return;
     }
@@ -25,11 +50,11 @@ export class Dili extends Fighter {
     const isJumping = input.isActionJustPressed('jump');
     const isCrouching = input.isActionDown('crouch');
 
-    const isPunch = input.isActionJustPressed('punch');
-    const isKick = input.isActionJustPressed('kick');
-    const isRanged = input.isActionJustPressed('ranged');
+    const isPunch = takeBuffered('punch');
+    const isKick = takeBuffered('kick');
+    const isRanged = takeBuffered('ranged');
     const isShadow = input.isActionJustPressed('shadow');
-    const isHeavy = input.isActionJustPressed('heavy');
+    const isHeavy = takeBuffered('heavy');
     const isBlocking = input.isActionDown('block');
     const dashDir = input.consumeDash();
 

@@ -13,6 +13,9 @@ export class Tsunami extends Fighter {
 
     this.aiTimer = 0;
     this.decisionInterval = 0.25; // Evaluates tactical choices 4x per second
+    // Defense may only trigger once per window — frame-perfect reaction
+    // guards every frame made the player's attacks feel hopeless.
+    this.defendCooldown = 0;
   }
 
   updateAI(dt, player, soundEngine) {
@@ -21,6 +24,7 @@ export class Tsunami extends Fighter {
     }
 
     this.aiTimer -= dt;
+    this.defendCooldown = Math.max(0, this.defendCooldown - dt);
     const dist = Math.abs(this.x - player.x);
     const toPlayerDir = Math.sign(player.x - this.x);
 
@@ -48,14 +52,17 @@ export class Tsunami extends Fighter {
       return;
     }
 
-    // 4. Defensive Reaction: Block or Dodge if player is attacking in close range
-    if (player.state === 'ATTACKING' && dist < 170 && this.state !== 'ATTACKING') {
+    // 4. Defensive Reaction: Block or Dodge if player is attacking in close
+    //    range — but only once per cooldown window, like a human read, not
+    //    a frame-perfect machine-gun guard.
+    if (player.state === 'ATTACKING' && dist < 170 && this.state !== 'ATTACKING' && this.defendCooldown <= 0) {
+      this.defendCooldown = 0.7;
       const roll = Math.random();
-      if (roll < 0.45) {
+      if (roll < 0.35) {
         this.state = 'BLOCK';
         this.vx = 0;
         return;
-      } else if (roll < 0.65) {
+      } else if (roll < 0.5) {
         // Low sweep counter
         this.startAttack(MOVES.KICK_DOWN);
         return;

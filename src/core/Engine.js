@@ -307,6 +307,13 @@ export class Engine {
           this.camera.shake(p2Hitbox.properties.isHeavy ? 14 : 8, 0.22);
           this.applyHitFeel(result, p2Hitbox.properties.isHeavy);
 
+          // Fairness: after landing a hit, Tsunami takes a breath before the
+          // next decision — the player always gets a window to fight back
+          // instead of being re-hit the instant stun ends (stun-lock).
+          if (result === 'hit' || result === 'ko') {
+            this.opponent.aiTimer = Math.max(this.opponent.aiTimer, p2Hitbox.properties.isHeavy ? 0.55 : 0.38);
+          }
+
           if (result === 'ko') {
             this.triggerKO(this.opponent, this.player);
           }

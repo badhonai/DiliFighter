@@ -36,6 +36,9 @@ export class Fighter {
     this.currentMove = null;
     this.attackPhase = null; // 'startup' | 'active' | 'recovery'
     this.frameTimer = 0;
+    // Brief invulnerability after recovering from stun/knockdown — breaks
+    // frame-perfect stun-locks so the defender always gets a chance to act.
+    this.invincibleTimer = 0;
     this.hasHitOpponent = false;
     this.comboCount = 0;
     this.comboResetTimer = 0;
@@ -144,6 +147,9 @@ export class Fighter {
 
   takeHit(hitbox, attacker, soundEngine, particleSystem) {
     if (this.state === 'DEAD') return;
+
+    // Recovery grace: attacks whiff for a moment right after stun/knockdown
+    if (this.invincibleTimer > 0) return 'evaded';
 
     const props = hitbox.properties;
     const isShadow = props.isShadow;
@@ -294,16 +300,19 @@ export class Fighter {
     }
 
     // Handle Hit Stun & Knockdown
+    this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     if (this.state === 'HIT_STUN') {
       this.stunDuration -= dt;
       if (this.stunDuration <= 0) {
         this.state = 'IDLE';
+        this.invincibleTimer = 0.12; // stand back up with a breath of safety
       }
     } else if (this.state === 'KNOCKDOWN' && this.health > 0) {
       this.stunDuration -= dt;
       this.actionProgress = Math.max(0, 1 - this.stunDuration / 0.8);
       if (this.stunDuration <= 0) {
         this.state = 'IDLE';
+        this.invincibleTimer = 0.25; // getting up must never be punishable
         particleSystem.emitDust(this.x, this.y, 8);
       }
     }
