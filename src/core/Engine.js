@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../config.js';
+import { LOW_FX, MAX_DPR } from './PerfFlags.js';
 import { Camera } from './Camera.js';
 import { InputManager } from './InputManager.js';
 import { SoundEngine } from '../audio/SoundEngine.js';
@@ -17,6 +18,27 @@ export class Engine {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+
+    // Mobile GPU rescue: canvas shadowBlur/shadowColor are the single most
+    // expensive 2D ops and this game used them ~30x per frame. On coarse
+    // pointers we neutralize them at the context level — every existing
+    // draw call keeps working, just without the glow tax.
+    if (LOW_FX) {
+      try {
+        Object.defineProperty(this.ctx, 'shadowBlur', {
+          get: () => 0,
+          set: () => {},
+          configurable: true,
+        });
+        Object.defineProperty(this.ctx, 'shadowColor', {
+          get: () => 'rgba(0,0,0,0)',
+          set: () => {},
+          configurable: true,
+        });
+      } catch {
+        /* some engines refuse instance overrides — ParticleSystem still has its own lowFX path */
+      }
+    }
 
     // Systems
     this.inputManager = new InputManager();
@@ -66,7 +88,9 @@ export class Engine {
   }
 
   resizeViewport() {
-    const dpr = window.devicePixelRatio || 1;
+    // Native devicePixelRatio (3x on many phones) renders 9x the pixels of
+    // 1x for zero visible benefit in a stylized game — cap it hard.
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     const width = window.innerWidth;
     const height = window.innerHeight;
 

@@ -1,15 +1,18 @@
+import { LOW_FX } from '../core/PerfFlags.js';
+
 export class ParticleSystem {
   constructor() {
     this.particles = [];
     this.slashTrails = [];
-    // Mobile GPUs choke on per-particle shadowBlur — it tanks the frame rate
-    // so hard that input LOOKS dead. Coarse pointer = phone/tablet = no glow.
-    this.lowFX = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+    // Mobile GPUs choke on per-particle shadowBlur and big particle counts —
+    // it tanks the frame rate so hard that input LOOKS dead.
+    this.lowFX = LOW_FX;
   }
 
   emitHitSpark(x, y, count = 12, isHeavy = false, isShadow = false) {
     const baseColor = isShadow ? '#00f0ff' : isHeavy ? '#ff3b30' : '#ffcc00';
     const secondary = isShadow ? '#ffffff' : '#ff9500';
+    if (this.lowFX) count = Math.max(4, Math.floor(count / 2));
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -53,7 +56,8 @@ export class ParticleSystem {
 
   /** Horizontal speed streaks for the double-tap dash. */
   emitDashStreaks(x, y, dir, color = 'rgba(226, 240, 255, 0.85)') {
-    for (let i = 0; i < 6; i++) {
+    const count = this.lowFX ? 3 : 6;
+    for (let i = 0; i < count; i++) {
       this.particles.push({
         x: x - dir * (Math.random() * 14),
         y: y + (Math.random() * 60 - 30),
@@ -133,6 +137,12 @@ export class ParticleSystem {
   }
 
   update(dt) {
+    // Hard cap: never let the particle pool balloon (protects frame pacing)
+    const MAX_PARTICLES = this.lowFX ? 140 : 400;
+    if (this.particles.length > MAX_PARTICLES) {
+      this.particles.splice(0, this.particles.length - MAX_PARTICLES);
+    }
+
     // Update particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];

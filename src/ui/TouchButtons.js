@@ -103,7 +103,7 @@ export class TouchButtons {
     // canvas, which silently killed every on-screen button. Coordinate
     // hit-testing below still guarantees only real button presses register.
     const isInteractiveUI = (el) =>
-      el && el.closest && el.closest('button, .modal-overlay, #help-modal, #rotate-overlay, #tap-to-play-overlay, .touch-interactive');
+      el && el.closest && el.closest('button, input, .modal-overlay.active, #help-modal.active, #rotate-overlay, #tap-to-play-overlay');
 
     const pressAt = (clientX, clientY, id) => {
       const { x, y } = this.getCanvasCoords(clientX, clientY);

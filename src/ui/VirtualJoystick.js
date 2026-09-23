@@ -121,7 +121,7 @@ export class VirtualJoystick {
     // on real devices whenever a transparent layer / fullscreen transition
     // retargeted the touch away from the canvas element.
     const isInteractiveUI = (el) =>
-      el && el.closest && el.closest('button, .modal-overlay, #help-modal, #rotate-overlay, #tap-to-play-overlay, .touch-interactive');
+      el && el.closest && el.closest('button, input, .modal-overlay.active, #help-modal.active, #rotate-overlay, #tap-to-play-overlay');
 
     window.addEventListener('touchstart', (e) => {
       if (isInteractiveUI(e.target)) return;
