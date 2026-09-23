@@ -13,6 +13,7 @@ import { TouchButtons } from '../ui/TouchButtons.js';
 import { MatchAnnouncer } from '../ui/MatchAnnouncer.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { MusicToggle } from '../ui/MusicToggle.js';
+import { VSSplash } from '../ui/VSSplash.js';
 
 export class Engine {
   constructor(canvas) {
@@ -52,6 +53,7 @@ export class Engine {
     this.touchButtons = new TouchButtons(this.inputManager, this.canvas);
     this.pauseMenu = new PauseMenu(this);
     this.musicToggle = new MusicToggle(this.soundEngine);
+    this.vsSplash = new VSSplash();
 
     // Entities
     this.player = new Dili(350, GAME_CONFIG.PHYSICS.GROUND_Y);
@@ -481,6 +483,12 @@ export class Engine {
 
     // 5. Fixed HUD & UI Elements (canvas is currently in world-space transform)
     this.hud.render(ctx, this.player, this.opponent, this.matchTimer, this.roundNumber);
+
+    // Character-select splash on top of everything during the round intro
+    if (this.matchState === 'INTRO') {
+      this.vsSplash.render(ctx, this.vsSplash.len - Math.max(0, this.stateTimer));
+    }
+
     this.joystick.render(ctx);
     this.touchButtons.render(ctx, this.player);
     this.announcer.render(ctx);

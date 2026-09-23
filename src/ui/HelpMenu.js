@@ -50,6 +50,7 @@ export class HelpMenu {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
         <h2 class="help-title">HOW TO PLAY</h2>
+        <img class="help-hero" src="${import.meta.env.BASE_URL}characters/dili_portrait.jpg" alt="Dili — the bubble-helmet hero" draggable="false" />
 
         <div class="help-section">
           <h3>THE GOAL</h3>
