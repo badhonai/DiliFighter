@@ -22,6 +22,18 @@ export class SoundEngine {
     this.compressor = null;
     this.initialized = false;
     this.music = new MusicEngine(this);
+
+    // Register autoplay-unlock gestures IMMEDIATELY. They were previously
+    // added inside init() — which is only reachable via resume(), which no
+    // play* call could reach while ctx was still null => audio deadlocked
+    // forever with zero sound. These listeners break the cycle: the first
+    // tap/key anywhere initializes and resumes the AudioContext.
+    const unlock = () => this.resume();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pointerdown', unlock, { passive: true });
+      window.addEventListener('touchstart', unlock, { passive: true });
+      window.addEventListener('keydown', unlock);
+    }
   }
 
   init() {
@@ -53,12 +65,6 @@ export class SoundEngine {
 
         this.initialized = true;
         this.music.bind(this.ctx, this.musicBus);
-
-        // First user gesture satisfies autoplay policies (iOS especially)
-        const unlock = () => this.resume();
-        window.addEventListener('pointerdown', unlock, { passive: true });
-        window.addEventListener('touchstart', unlock, { passive: true });
-        window.addEventListener('keydown', unlock);
       }
     } catch (e) {
       console.warn('AudioContext initialization deferred:', e);
@@ -108,8 +114,9 @@ export class SoundEngine {
 
   // Attack swing whoosh
   playSwing(pitch = 300) {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -137,8 +144,9 @@ export class SoundEngine {
 
   // Heavy martial arts hit impact
   playHit(isHeavy = false) {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
     // Sub-bass thud
@@ -163,8 +171,9 @@ export class SoundEngine {
 
   // Metallic sword clash (blocks & blade-on-blade)
   playBladeClash() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
     const freqs = [1200, 1850, 2600, 3400];
@@ -189,8 +198,9 @@ export class SoundEngine {
 
   // Shadow Mode activation boom & ethereal chime
   playShadowActivate() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
 
@@ -224,8 +234,9 @@ export class SoundEngine {
 
   // Match gong (round start)
   playGong() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
     [130, 260, 390].forEach((freq, idx) => {
@@ -244,8 +255,9 @@ export class SoundEngine {
 
   // Cinematic K.O. impact: giant sub boom + crash + dark gong tail
   playKO() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
 
@@ -284,16 +296,18 @@ export class SoundEngine {
 
   // Jump: airy upward whoosh
   playJump() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.playSweptNoise(t, 'bandpass', 380, 0.16, 0.14, 1500, 1.2);
   }
 
   // Landing: soft ground thud
   playLand() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -310,8 +324,9 @@ export class SoundEngine {
 
   // Ranged projectile launch: energy zap
   playRangedLaunch() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
 
     const osc = this.ctx.createOscillator();
@@ -331,8 +346,9 @@ export class SoundEngine {
 
   // Ranged projectile impact: burst + body
   playRangedImpact() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
 
     const osc = this.ctx.createOscillator();
@@ -352,8 +368,9 @@ export class SoundEngine {
 
   // Final 5 seconds countdown blip (higher on the very last second)
   playCountdownTick(isLast = false) {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -369,8 +386,9 @@ export class SoundEngine {
 
   // Shadow bar just filled: quick pentatonic shimmer
   playShadowReady() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     [659.25, 783.99, 880].forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
@@ -388,8 +406,9 @@ export class SoundEngine {
 
   // Match victory: bright rising sting (minor → Picardy major)
   playVictory() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     [440, 554.37, 659.25, 880, 1108.73].forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
@@ -408,8 +427,9 @@ export class SoundEngine {
 
   // Match defeat: slow descending dark chords
   playDefeat() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     [220, 174.61, 146.83].forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
@@ -428,8 +448,9 @@ export class SoundEngine {
 
   // Soft UI click for menus
   playUIClick() {
-    if (this.muted || !this.ctx) return;
+    if (this.muted) return;
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
