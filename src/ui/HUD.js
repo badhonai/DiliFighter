@@ -62,8 +62,8 @@ export class HUD {
     if (this.comboDisplay.p1.timer > 0) this.comboDisplay.p1.timer -= dt;
     if (this.comboDisplay.p2.timer > 0) this.comboDisplay.p2.timer -= dt;
 
-    // Screen flash decays fast
-    if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - 2.8 * dt);
+    // Screen flash decays fast — quick punch of light, never a lingering strobe
+    if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - 3.6 * dt);
   }
 
   render(ctx, p1, p2, matchTimer, roundNum) {

@@ -21,6 +21,11 @@ export class TouchButtons {
     }
 
     this.layout();
+    // Safety net: if the canvas had no size yet at construction, layout()
+    // early-returns and the buttons keep garbage coordinates — re-anchor on
+    // the next frames so touch never points at invisible buttons.
+    if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => this.layout());
+    setTimeout(() => this.layout(), 300);
     window.addEventListener('resize', () => this.layout());
     window.addEventListener('orientationchange', () => this.layout());
 
@@ -91,6 +96,15 @@ export class TouchButtons {
     // locked the fighter in its attack state and froze all movement.
     this.heldBy = new Map();
 
+    // Reject ONLY touches that start on real interactive HTML UI (pause/help
+    // buttons, open modals). We deliberately do NOT require e.target to be
+    // the canvas: on real devices transparent layers, browser zoom wrappers
+    // and fullscreen transitions can retarget the event away from the
+    // canvas, which silently killed every on-screen button. Coordinate
+    // hit-testing below still guarantees only real button presses register.
+    const isInteractiveUI = (el) =>
+      el && el.closest && el.closest('button, .modal-overlay, #help-modal, #rotate-overlay, #tap-to-play-overlay, .touch-interactive');
+
     const pressAt = (clientX, clientY, id) => {
       const { x, y } = this.getCanvasCoords(clientX, clientY);
       const nowHeld = new Set();
@@ -126,10 +140,10 @@ export class TouchButtons {
       this.heldBy.delete(id);
     };
 
-    // Only touches that start on the canvas count as button presses — taps
-    // on HTML buttons must never activate the on-screen attack buttons.
+    // Touches on HTML buttons/modals belong to those elements; everything
+    // else is fair game for coordinate-based button hit-testing.
     window.addEventListener('touchstart', (e) => {
-      if (e.target !== this.canvas) return;
+      if (isInteractiveUI(e.target)) return;
       if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];

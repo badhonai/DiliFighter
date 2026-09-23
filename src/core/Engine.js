@@ -282,10 +282,10 @@ export class Engine {
       this.hitstop = Math.max(this.hitstop, 0.03);
     } else if (result === 'hit') {
       this.hitstop = Math.max(this.hitstop, isHeavy ? 0.09 : 0.055);
-      if (isHeavy) this.hud.flash(0.2);
+      if (isHeavy) this.hud.flash(0.14);
     } else if (result === 'ko') {
       this.hitstop = Math.max(this.hitstop, 0.12);
-      this.hud.flash(0.4);
+      this.hud.flash(0.3);
     }
   }
 

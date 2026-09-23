@@ -2,6 +2,9 @@ export class ParticleSystem {
   constructor() {
     this.particles = [];
     this.slashTrails = [];
+    // Mobile GPUs choke on per-particle shadowBlur — it tanks the frame rate
+    // so hard that input LOOKS dead. Coarse pointer = phone/tablet = no glow.
+    this.lowFX = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   }
 
   emitHitSpark(x, y, count = 12, isHeavy = false, isShadow = false) {
@@ -31,18 +34,19 @@ export class ParticleSystem {
     }
   }
 
-  /** Expanding impact ring — the "punch" that makes heavy hits LAND. */
+  /** Expanding impact ring — the "punch" that makes heavy hits LAND.
+   *  Kept tight and short-lived so it reads as impact, not a strobe. */
   emitShockwave(x, y, isShadow = false) {
     this.particles.push({
       x, y,
       vx: 0, vy: 0,
-      radius: 8,
-      radiusGrowth: 520,
-      lineWidth: 7,
+      radius: 10,
+      radiusGrowth: 380,
+      lineWidth: 4.5,
       color: isShadow ? '#00f0ff' : '#ffe9a8',
-      alpha: 0.95,
-      life: 0.28,
-      maxLife: 0.28,
+      alpha: 0.8,
+      life: 0.2,
+      maxLife: 0.2,
       type: 'ring',
     });
   }
@@ -170,8 +174,10 @@ export class ParticleSystem {
       ctx.strokeStyle = trail.color;
       ctx.lineWidth = 4;
       ctx.lineCap = 'round';
-      ctx.shadowColor = trail.color;
-      ctx.shadowBlur = 10;
+      if (!this.lowFX) {
+        ctx.shadowColor = trail.color;
+        ctx.shadowBlur = 10;
+      }
       ctx.beginPath();
       ctx.moveTo(trail.points[0].x, trail.points[0].y);
       for (let i = 1; i < trail.points.length; i++) {
@@ -188,23 +194,29 @@ export class ParticleSystem {
 
       if (p.type === 'spark') {
         ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 6;
+        if (!this.lowFX) {
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 6;
+        }
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       } else if (p.type === 'shadowWisp') {
         ctx.fillStyle = p.color;
-        ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 10;
+        if (!this.lowFX) {
+          ctx.shadowColor = '#00f0ff';
+          ctx.shadowBlur = 10;
+        }
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       } else if (p.type === 'ring') {
         ctx.strokeStyle = p.color;
         ctx.lineWidth = p.lineWidth * p.alpha;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 14;
+        if (!this.lowFX) {
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+        }
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.stroke();

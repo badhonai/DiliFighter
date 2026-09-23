@@ -116,9 +116,15 @@ export class VirtualJoystick {
 
     // Touches that start on an HTML button/overlay belong to that element —
     // they must never engage the joystick (e.g. the music/help buttons sit
-    // inside the stick's activation zone on some screens).
+    // inside the stick's activation zone on some screens). Everything else
+    // is accepted: requiring e.target === canvas silently killed the stick
+    // on real devices whenever a transparent layer / fullscreen transition
+    // retargeted the touch away from the canvas element.
+    const isInteractiveUI = (el) =>
+      el && el.closest && el.closest('button, .modal-overlay, #help-modal, #rotate-overlay, #tap-to-play-overlay, .touch-interactive');
+
     window.addEventListener('touchstart', (e) => {
-      if (e.target !== this.canvas) return;
+      if (isInteractiveUI(e.target)) return;
       if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
@@ -127,7 +133,7 @@ export class VirtualJoystick {
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
-      if (e.target === this.canvas && e.cancelable) e.preventDefault();
+      if (!isInteractiveUI(e.target) && e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         handleMove(t.clientX, t.clientY, t.identifier);
