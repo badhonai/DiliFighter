@@ -4,7 +4,8 @@
  * opens the full controls guide as a modal. Keeps the in-game HUD clean.
  */
 export class HelpMenu {
-  constructor() {
+  constructor(engine = null) {
+    this.engine = engine;
     this.createDOM();
     this.bindEvents();
     this.maybeAutoOpenFirstVisit();
@@ -118,6 +119,10 @@ export class HelpMenu {
   open() {
     this.overlay.classList.add('active');
     this.helpBtn.classList.remove('attention'); // user found the guide — stop hinting
+    // Reading the manual is not fighting: pause the match behind it
+    if (this.engine && this.engine.pauseMenu && !this.engine.pauseMenu.isPaused) {
+      this.engine.pauseMenu.togglePause(true);
+    }
   }
 
   close() {

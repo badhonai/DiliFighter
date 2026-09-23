@@ -25,6 +25,12 @@ export class InputManager {
     // which the raw axis alone could never produce.
     this.axisState = { left: false, right: false, up: false, down: false };
     this.touchActive = false;
+    // Timestamp of the latest touch/mouse press, plus an "epoch" marker: only
+    // presses AFTER the epoch count as activity. The epoch is set when a
+    // round becomes FIGHTING, so the mandatory "TAP TO PLAY" press (which
+    // happens earlier) doesn't instantly wake the waiting opponent.
+    this.lastPointerPress = 0;
+    this.activityEpoch = 0;
 
     this.setupListeners();
   }
@@ -53,16 +59,37 @@ export class InputManager {
       this.keysDown.delete(e.code);
     });
 
-    // Touch detection
-    window.addEventListener('touchstart', () => {
+    // Touch detection / first-activity detection (the opponent waits for it)
+    const markActive = () => {
       this.touchActive = true;
-    }, { passive: true });
+      this.lastPointerPress = performance.now();
+    };
+    window.addEventListener('touchstart', markActive, { passive: true });
+    window.addEventListener('mousedown', markActive, { passive: true });
+  }
+
+  /** Call when a round goes live: only presses after this wake the AI. */
+  markActivityEpoch() {
+    this.activityEpoch = performance.now();
   }
 
   // Update called at the end of every frame to reset justPressed
   update() {
     this.justPressed.clear();
     this.virtualJustPressed.clear();
+  }
+
+  /**
+   * True once the human has shown signs of life: any key, any touch, any
+   * stick movement, any virtual button. The opponent refuses to attack
+   * until this flips true, so an AFK player is never beaten up.
+   */
+  hasAnyActivity() {
+    // Only touches that happened after the round went live count
+    if (this.lastPointerPress >= this.activityEpoch && this.activityEpoch > 0) return true;
+    if (this.keysDown.size > 0 || this.justPressed.size > 0) return true;
+    if (this.virtualAxes.x !== 0 || this.virtualAxes.y !== 0) return true;
+    return Object.values(this.virtualButtons).some(Boolean);
   }
 
   /** Second tap of the same direction within 280 ms queues a dash. */

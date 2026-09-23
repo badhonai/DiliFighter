@@ -64,6 +64,10 @@ export class Engine {
     this.matchState = 'INTRO'; // 'INTRO' | 'FIGHTING' | 'KO' | 'MATCH_OVER'
     this.stateTimer = 2.0;
 
+    // The opponent stays idle until the player makes ANY input — an AFK
+    // player must never get combo'd by the AI.
+    this.playerHasActed = false;
+
     // Audio edge-detection state (rising edges of game events)
     this.audioState = { lastTimerCeil: null, shadowReadyP1: false, shadowReadyP2: false };
 
@@ -77,6 +81,7 @@ export class Engine {
     this.timeScale = 1.0; // Slow motion during KO
 
     this.setupResize();
+    this.setupAutoPause();
     this.startRound();
   }
 
@@ -85,6 +90,19 @@ export class Engine {
     window.addEventListener('resize', resize);
     window.addEventListener('orientationchange', resize);
     this.resizeViewport();
+  }
+
+  /**
+   * Auto-pause whenever the player leaves the screen — tab switch, app
+   * switch, minimize. Same spirit as opening the manual: the fight waits.
+   */
+  setupAutoPause() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && !this.pauseMenu.isPaused && this.matchState !== 'MATCH_OVER') {
+        this.pauseMenu.togglePause(true);
+      }
+    });
   }
 
   resizeViewport() {
@@ -129,6 +147,7 @@ export class Engine {
     this.matchState = 'INTRO';
     this.stateTimer = 2.2;
     this.timeScale = 1.0;
+    this.playerHasActed = false; // opponent waits for the player's first move
 
     // Rotate arena each round (first round of a match keeps the initial pick)
     if (this.roundNumber > 1) {
@@ -172,14 +191,29 @@ export class Engine {
       this.stateTimer -= effectiveDt;
       if (this.stateTimer <= 0) {
         this.matchState = 'FIGHTING';
-        this.announcer.announce('FIGHT!', '', 1.2, '#f59e0b');
+        // Only inputs from THIS moment on can wake the waiting opponent
+        this.inputManager.markActivityEpoch();
+        this.announcer.announce(
+          'FIGHT!',
+          this.playerHasActed ? '' : 'Opponent waits — make your move',
+          this.playerHasActed ? 1.2 : 1.8,
+          '#f59e0b'
+        );
       }
     } else if (this.matchState === 'FIGHTING') {
-      this.matchTimer = Math.max(0, this.matchTimer - actorDt);
+      // Latch the first sign of life from the player
+      if (!this.playerHasActed && this.inputManager.hasAnyActivity()) {
+        this.playerHasActed = true;
+      }
 
-      // Timeout check
-      if (this.matchTimer <= 0) {
-        this.evaluateRoundWinner();
+      // Round timer only runs once the player has engaged
+      if (this.playerHasActed) {
+        this.matchTimer = Math.max(0, this.matchTimer - actorDt);
+
+        // Timeout check
+        if (this.matchTimer <= 0) {
+          this.evaluateRoundWinner();
+        }
       }
     } else if (this.matchState === 'KO') {
       this.stateTimer -= effectiveDt;
@@ -191,7 +225,10 @@ export class Engine {
     // Input & Character updates
     if (this.matchState === 'FIGHTING') {
       this.player.handleInput(this.inputManager, this.soundEngine);
-      this.opponent.updateAI(actorDt, this.player, this.soundEngine);
+      // Tsunami stays calm and idle until the player makes the first move
+      if (this.playerHasActed) {
+        this.opponent.updateAI(actorDt, this.player, this.soundEngine);
+      }
     }
 
     // Detect Shadow Mode triggers for announcements
