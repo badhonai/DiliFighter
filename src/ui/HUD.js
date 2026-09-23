@@ -1,10 +1,25 @@
 import { GAME_CONFIG } from '../config.js';
 
+/**
+ * HUD — name plates, health bars, shadow meters, timer, round pips, combos.
+ *
+ * Design language: "dark glass + neon accent" so every element stays legible
+ * over BOTH arenas (dark cool Neon Rain Alley and bright warm Cliff Dojo) and
+ * during Shadow Mode. Both sides are perfectly mirrored around the center
+ * timing medallion; bars end in chisel tips pointing at it.
+ */
+
+const P1_ACCENT = '#38bdf8';
+const P1_GLOW = '#00f0ff';
+const P2_ACCENT = '#f87171';
+const P2_GLOW = '#ef4444';
+
 export class HUD {
   constructor() {
     this.p1TrailingHealth = GAME_CONFIG.MATCH.MAX_HEALTH;
     this.p2TrailingHealth = GAME_CONFIG.MATCH.MAX_HEALTH;
     this.comboDisplay = { p1: { count: 0, timer: 0 }, p2: { count: 0, timer: 0 } };
+    this.time = 0; // drives all pulsing / shimmer animations
   }
 
   showCombo(playerNum, count) {
@@ -16,6 +31,8 @@ export class HUD {
   }
 
   update(dt, p1, p2) {
+    this.time += dt;
+
     // Smoothly decay trailing health bars
     if (this.p1TrailingHealth > p1.health) {
       this.p1TrailingHealth -= (this.p1TrailingHealth - p1.health) * 4 * dt;
@@ -39,215 +56,482 @@ export class HUD {
 
     ctx.save();
 
-    // 1. Center Timer Display
-    this.renderTimer(ctx, w / 2, 45, Math.ceil(matchTimer), roundNum);
+    // 1. Center Timer Medallion
+    this.renderTimer(ctx, w / 2, Math.ceil(matchTimer), roundNum);
 
-    // 2. Player 1 (Left) Bars: Name, Health, Shadow Energy
-    // (nudged right so the stacked top-left fullscreen/help buttons never cover it)
+    // 2. Player 1 (Left) / Player 2 (Right) — mirrored around the medallion.
+    // The left anchor keeps clear of the stacked top-left HTML buttons.
     this.renderPlayerHUD(ctx, 164, 40, p1, this.p1TrailingHealth, false);
-
-    // 3. Player 2 (Right) Bars: Name, Health, Shadow Energy
     this.renderPlayerHUD(ctx, w - 164, 40, p2, this.p2TrailingHealth, true);
 
-    // 4. Hit Combo Popups
-    this.renderCombos(ctx, w);
+    // 3. Hit Combo Popups
+    this.renderCombos(ctx);
 
     ctx.restore();
   }
 
-  renderTimer(ctx, centerX, y, time, roundNum) {
-    // Hexagonal / Ornate Timer Frame
+  /** Dark glass helper: fills a path with glass styling + top highlight. */
+  glassPanel(ctx, path, edgeColor) {
     ctx.save();
-    ctx.fillStyle = 'rgba(10, 15, 25, 0.85)';
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
-    ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = 'rgba(8, 12, 24, 0.8)';
+    ctx.fill(path);
+    ctx.restore();
 
-    ctx.beginPath();
-    ctx.moveTo(centerX - 35, y - 25);
-    ctx.lineTo(centerX + 35, y - 25);
-    ctx.lineTo(centerX + 45, y + 15);
-    ctx.lineTo(centerX - 45, y + 15);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    ctx.strokeStyle = edgeColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke(path);
 
-    // Time digits
-    ctx.font = '900 28px "Cinzel", serif';
-    ctx.fillStyle = time <= 10 ? '#ef4444' : '#f8fafc';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = time <= 10 ? '#ef4444' : '#38bdf8';
-    ctx.shadowBlur = 8;
-    ctx.fillText(time.toString(), centerX, y - 5);
-
-    // Round Indicator Badge
-    ctx.font = '700 11px "Rajdhani", sans-serif';
-    ctx.fillStyle = '#94a3b8';
-    ctx.shadowBlur = 0;
-    ctx.fillText(`ROUND ${roundNum}`, centerX, y + 26);
-
+    ctx.save();
+    ctx.clip(path);
+    const hl = ctx.createLinearGradient(0, 0, 0, 60);
+    hl.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    hl.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = hl;
+    ctx.fillRect(0, 0, GAME_CONFIG.WORLD_WIDTH, 60);
     ctx.restore();
   }
 
   renderPlayerHUD(ctx, anchorX, y, fighter, trailingHealth, isReversed) {
-    const barWidth = 360;
-    const barHeight = 16;
+    const dir = isReversed ? -1 : 1;
+    const accent = isReversed ? P2_ACCENT : P1_ACCENT;
+    const glow = isReversed ? P2_GLOW : P1_GLOW;
+
+    // Mirrored geometry: crest center = anchor; bar 55px outward clear of it
+    const barW = 340;
+    const barH = 20;
+    const tip = 8;
+    const outerEdgeX = anchorX + dir * 55;   // 219 / 1061
+    const innerEdgeX = outerEdgeX + dir * barW; // 559 / 721
+    const tipX = innerEdgeX + dir * tip;        // 567 / 713
+    const barLeft = Math.min(outerEdgeX, innerEdgeX);
+    const midY = y + barH / 2;
+
     const maxHp = fighter.maxHealth;
     const hpRatio = Math.max(0, fighter.health / maxHp);
     const trailingRatio = Math.max(0, trailingHealth / maxHp);
 
-    ctx.save();
+    // Faction crest on the outer edge
+    this.renderCrest(ctx, anchorX, y + 12, isReversed);
 
-    // Faction Crest / Avatar Emblem
-    const crestX = isReversed ? anchorX - 25 : anchorX + 25;
-    this.renderCrest(ctx, isReversed ? anchorX : anchorX - 50, y + 10, isReversed);
+    // ---- Name Plate (angled glass chip above the bar) ----
+    const plateY0 = y - 28; // 12
+    const plateY1 = y - 5;  // 35
+    const plateInnerTop = outerEdgeX + dir * 188;
+    const plateInnerBottom = plateInnerTop - dir * 12;
 
-    // Fighter Name
-    ctx.font = '800 18px "Cinzel", serif';
-    ctx.fillStyle = '#f1f5f9';
-    ctx.textAlign = isReversed ? 'right' : 'left';
-    ctx.textBaseline = 'bottom';
-    ctx.shadowColor = '#00f0ff';
-    ctx.shadowBlur = 4;
-    const nameX = isReversed ? anchorX - 55 : anchorX + 5;
-    ctx.fillText(fighter.name, nameX, y - 6);
+    const platePath = new Path2D();
+    platePath.moveTo(outerEdgeX, plateY0);
+    platePath.lineTo(plateInnerTop, plateY0);
+    platePath.lineTo(plateInnerBottom, plateY1);
+    platePath.lineTo(outerEdgeX, plateY1);
+    platePath.closePath();
+    this.glassPanel(ctx, platePath, 'rgba(226, 232, 240, 0.22)');
 
-    // Rounds Won Gems
-    for (let r = 0; r < 2; r++) {
-      const gemX = isReversed ? nameX - 120 - r * 18 : nameX + 110 + r * 18;
-      ctx.fillStyle = r < fighter.roundsWon ? '#eab308' : '#334155';
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(gemX, y - 12, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Health Bar Frame Background
-    const startX = isReversed ? anchorX - 55 - barWidth : anchorX + 5;
-    ctx.fillStyle = '#0f172a';
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
-    ctx.lineWidth = 1.5;
+    // Accent underline along the plate bottom, fading toward center
+    const underGrad = ctx.createLinearGradient(outerEdgeX, 0, plateInnerBottom, 0);
+    underGrad.addColorStop(0, accent);
+    underGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.strokeStyle = underGrad;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.rect(startX, y, barWidth, barHeight);
-    ctx.fill();
+    ctx.moveTo(outerEdgeX, plateY1);
+    ctx.lineTo(plateInnerBottom, plateY1);
     ctx.stroke();
 
-    // Trailing Damage Bar (Red)
-    ctx.fillStyle = '#dc2626';
-    if (isReversed) {
-      const trailWidth = barWidth * trailingRatio;
-      ctx.fillRect(startX + barWidth - trailWidth, y + 1, trailWidth, barHeight - 2);
-    } else {
-      ctx.fillRect(startX, y + 1, barWidth * trailingRatio, barHeight - 2);
+    // Fighter name
+    ctx.font = '800 17px "Cinzel", serif';
+    ctx.fillStyle = '#f8fafc';
+    ctx.textAlign = isReversed ? 'right' : 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 5;
+    const nameX = isReversed ? outerEdgeX - 10 : outerEdgeX + 10;
+    ctx.fillText(fighter.name, nameX, plateY1 - 6);
+    ctx.shadowBlur = 0;
+
+    // Round pips (best of 3): angled diamonds at the plate's inner end
+    for (let r = 0; r < 2; r++) {
+      const pipX = plateInnerTop - dir * (26 + r * 20);
+      const pipY = (plateY0 + plateY1) / 2;
+      const won = r < fighter.roundsWon;
+      ctx.save();
+      ctx.translate(pipX, pipY);
+      ctx.fillStyle = won ? '#facc15' : 'rgba(148, 163, 184, 0.15)';
+      ctx.strokeStyle = won ? '#fef08a' : 'rgba(148, 163, 184, 0.5)';
+      if (won) {
+        ctx.shadowColor = '#fde047';
+        ctx.shadowBlur = 8;
+      }
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(5, 0);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(-5, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     }
 
-    // Main Current Health Bar (Gold / Orange)
-    const hpGrad = ctx.createLinearGradient(startX, y, startX + barWidth, y);
-    hpGrad.addColorStop(0, '#f59e0b');
-    hpGrad.addColorStop(0.5, '#fbbf24');
-    hpGrad.addColorStop(1, '#ea580c');
-    ctx.fillStyle = hpGrad;
+    // ---- Health Bar (chisel tip toward the timer) ----
+    const barPath = new Path2D();
+    barPath.moveTo(outerEdgeX, y);
+    barPath.lineTo(innerEdgeX, y);
+    barPath.lineTo(tipX, midY);
+    barPath.lineTo(innerEdgeX, y + barH);
+    barPath.lineTo(outerEdgeX, y + barH);
+    barPath.closePath();
 
-    if (isReversed) {
-      const currentWidth = barWidth * hpRatio;
-      ctx.fillRect(startX + barWidth - currentWidth, y + 1, currentWidth, barHeight - 2);
-    } else {
-      ctx.fillRect(startX, y + 1, barWidth * hpRatio, barHeight - 2);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = 'rgba(10, 15, 26, 0.85)';
+    ctx.fill(barPath);
+    ctx.restore();
+
+    // Clipped layers: trailing damage -> current health -> sheen -> ticks
+    ctx.save();
+    ctx.clip(barPath);
+
+    // Trailing damage (recently lost health draining behind)
+    if (trailingRatio > hpRatio) {
+      const tw = barW * Math.min(1, trailingRatio);
+      const tx = isReversed ? outerEdgeX - tw : outerEdgeX;
+      const trailGrad = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+      trailGrad.addColorStop(0, '#f97316');
+      trailGrad.addColorStop(1, '#dc2626');
+      ctx.fillStyle = trailGrad;
+      ctx.fillRect(tx, y, tw, barH);
     }
 
-    // Shadow Energy Meter (Directly under health bar)
-    const shadowY = y + barHeight + 4;
-    const shadowHeight = 7;
-    const shadowRatio = Math.max(0, Math.min(1, fighter.shadowSystem.energy / fighter.shadowSystem.maxEnergy));
-    const isShadowFull = fighter.shadowSystem.isReady();
-    const isShadowActive = fighter.shadowSystem.isActive;
+    // Current health (gold gradient, vertical)
+    if (hpRatio > 0) {
+      const hw = barW * hpRatio;
+      const hx = isReversed ? outerEdgeX - hw : outerEdgeX;
+      const hpGrad = ctx.createLinearGradient(0, y, 0, y + barH);
+      hpGrad.addColorStop(0, '#fef08a');
+      hpGrad.addColorStop(0.35, '#fbbf24');
+      hpGrad.addColorStop(1, '#d97706');
+      ctx.fillStyle = hpGrad;
+      ctx.fillRect(hx, y, hw, barH);
 
-    // Shadow bar background
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(startX, shadowY, barWidth, shadowHeight);
+      // Low-health warning pulse
+      if (hpRatio <= 0.25) {
+        const pulse = 0.22 + 0.16 * Math.sin(this.time * 7);
+        ctx.fillStyle = `rgba(239, 68, 68, ${pulse.toFixed(3)})`;
+        ctx.fillRect(hx, y, hw, barH);
+      }
+    }
 
-    // Shadow bar fill (Cyan)
+    // Glass sheen across the top half
+    const sheen = ctx.createLinearGradient(0, y, 0, y + barH);
+    sheen.addColorStop(0, 'rgba(255, 255, 255, 0.16)');
+    sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0.02)');
+    sheen.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(barLeft, y, barW + tip, barH);
+
+    // Segment ticks every 10% of health
+    ctx.strokeStyle = 'rgba(2, 6, 23, 0.35)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 10; i++) {
+      const sx = barLeft + (barW * i) / 10;
+      ctx.beginPath();
+      ctx.moveTo(sx, y + 1);
+      ctx.lineTo(sx, y + barH - 1);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Frame stroke + neon accent edge on the crest side
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke(barPath);
+    ctx.save();
+    ctx.strokeStyle = accent;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 6;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(outerEdgeX, y + 1);
+    ctx.lineTo(outerEdgeX, y + barH - 1);
+    ctx.stroke();
+    ctx.restore();
+
+    // Hairline connecting the bar tip toward the timer medallion
+    const connGrad = ctx.createLinearGradient(tipX, 0, tipX + dir * 33, 0);
+    connGrad.addColorStop(0, 'rgba(226, 232, 240, 0.45)');
+    connGrad.addColorStop(1, 'rgba(226, 232, 240, 0)');
+    ctx.strokeStyle = connGrad;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tipX, midY);
+    ctx.lineTo(tipX + dir * 33, midY);
+    ctx.stroke();
+
+    // ---- Shadow Energy Meter (segmented, under the health bar) ----
+    const shadowY = y + barH + 4;
+    const shadowH = 9;
+    const ss = fighter.shadowSystem;
+    const shadowRatio = Math.max(0, Math.min(1, ss.energy / ss.maxEnergy));
+    const isReady = ss.isReady();
+    const isShadowActive = ss.isActive;
+
+    // Meter background
+    ctx.beginPath();
+    ctx.rect(barLeft, shadowY, barW, shadowH);
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+    ctx.fill();
+
+    // Segmented fill
     if (shadowRatio > 0) {
-      ctx.fillStyle = isShadowActive ? '#38bdf8' : '#00f0ff';
-      if (isShadowFull) {
-        // Pulsing glow when 100% full
-        ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 12;
-      }
-      if (isReversed) {
-        const sWidth = barWidth * shadowRatio;
-        ctx.fillRect(startX + barWidth - sWidth, shadowY, sWidth, shadowHeight);
+      const fw = barW * shadowRatio;
+      const fx = isReversed ? outerEdgeX - fw : outerEdgeX;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(barLeft, shadowY, barW, shadowH);
+      ctx.clip();
+
+      const mGrad = ctx.createLinearGradient(outerEdgeX, 0, innerEdgeX, 0);
+      if (isShadowActive) {
+        mGrad.addColorStop(0, '#e0f2fe');
+        mGrad.addColorStop(1, '#7dd3fc');
       } else {
-        ctx.fillRect(startX, shadowY, barWidth * shadowRatio, shadowHeight);
+        mGrad.addColorStop(0, '#0ea5e9');
+        mGrad.addColorStop(1, '#22d3ee');
       }
+      ctx.fillStyle = mGrad;
+      ctx.fillRect(fx, shadowY, fw, shadowH);
+
+      // Traveling shine while shadow mode runs
+      if (isShadowActive) {
+        const shineX = barLeft + ((this.time * 420) % (barW + 80)) - 40;
+        const sGrad = ctx.createLinearGradient(shineX - 20, 0, shineX + 20, 0);
+        sGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        sGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+        sGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = sGrad;
+        ctx.fillRect(shineX - 20, shadowY, 40, shadowH);
+      }
+
+      // Ready: pulsing white-hot core glow
+      if (isReady && !isShadowActive) {
+        const pulse = 0.25 + 0.2 * Math.sin(this.time * 6);
+        ctx.fillStyle = `rgba(240, 249, 255, ${pulse.toFixed(3)})`;
+        ctx.fillRect(fx, shadowY, fw, shadowH);
+      }
+      ctx.restore();
     }
 
+    // Segment dividers + frame
+    ctx.strokeStyle = 'rgba(2, 6, 23, 0.5)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) {
+      const sx = barLeft + (barW * i) / 8;
+      ctx.beginPath();
+      ctx.moveTo(sx, shadowY);
+      ctx.lineTo(sx, shadowY + shadowH);
+      ctx.stroke();
+    }
+    ctx.save();
+    if (isReady || isShadowActive) {
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = isShadowActive ? 14 : 8 + 5 * Math.sin(this.time * 6);
+      ctx.strokeStyle = '#67e8f9';
+    } else {
+      ctx.strokeStyle = 'rgba(103, 232, 249, 0.35)';
+    }
+    ctx.lineWidth = 1.3;
+    ctx.strokeRect(barLeft, shadowY, barW, shadowH);
+    ctx.restore();
+
+    // Tiny label so first-time players know what the cyan bar is
+    ctx.font = '700 10px "Rajdhani", sans-serif';
+    ctx.fillStyle = 'rgba(165, 243, 252, 0.75)';
+    ctx.textAlign = isReversed ? 'right' : 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('SHADOW', isReversed ? outerEdgeX : outerEdgeX + 2, shadowY + shadowH + 11);
+  }
+
+  renderTimer(ctx, centerX, time, roundNum) {
+    const cy = 42;
+    const r = 30;
+    const h = r * Math.sin(Math.PI / 3);
+    const critical = time <= 10;
+
+    ctx.save();
+
+    // Pulsing scale when the round is about to end
+    if (critical) {
+      const s = 1 + 0.05 * Math.sin(this.time * 10);
+      ctx.translate(centerX, cy);
+      ctx.scale(s, s);
+      ctx.translate(-centerX, -cy);
+    }
+
+    // Flat-top hexagon medallion
+    const hex = new Path2D();
+    hex.moveTo(centerX + r, cy);
+    hex.lineTo(centerX + r / 2, cy + h);
+    hex.lineTo(centerX - r / 2, cy + h);
+    hex.lineTo(centerX - r, cy);
+    hex.lineTo(centerX - r / 2, cy - h);
+    hex.lineTo(centerX + r / 2, cy - h);
+    hex.closePath();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = 'rgba(8, 12, 24, 0.85)';
+    ctx.fill(hex);
+    ctx.restore();
+
+    // Outer neon stroke + inner hairline for a layered medallion feel
+    ctx.save();
+    ctx.strokeStyle = critical ? '#ef4444' : 'rgba(103, 232, 249, 0.75)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = critical ? '#ef4444' : '#00f0ff';
+    ctx.shadowBlur = critical ? 14 : 8;
+    ctx.stroke(hex);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(centerX, cy);
+    ctx.scale(0.82, 0.82);
+    ctx.translate(-centerX, -cy);
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke(hex);
+    ctx.restore();
+
+    // Time digits
+    ctx.font = '900 26px "Cinzel", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = critical ? '#fca5a5' : '#f8fafc';
+    ctx.shadowColor = critical ? '#ef4444' : '#38bdf8';
+    ctx.shadowBlur = critical ? 10 : 8;
+    ctx.fillText(time.toString(), centerX, cy + 1);
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+
+    // Round badge pill under the medallion
+    ctx.save();
+    const pillW = 74;
+    const pillH = 16;
+    const pillX = centerX - pillW / 2;
+    const pillY = cy + h - 4;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+    } else {
+      ctx.rect(pillX, pillY, pillW, pillH);
+    }
+    ctx.fillStyle = 'rgba(8, 12, 24, 0.8)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.font = '700 11px "Rajdhani", sans-serif';
+    ctx.fillStyle = '#cbd5e1';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`ROUND ${roundNum}`, centerX, pillY + pillH / 2 + 0.5);
     ctx.restore();
   }
 
   renderCrest(ctx, x, y, isOpponent) {
+    const accent = isOpponent ? P2_ACCENT : P1_ACCENT;
+    const glow = isOpponent ? P2_GLOW : P1_GLOW;
+
     ctx.save();
     ctx.translate(x, y);
 
-    // Outer diamond frame
-    ctx.fillStyle = '#0f172a';
-    ctx.strokeStyle = isOpponent ? '#ef4444' : '#00f0ff';
+    // Outer diamond frame with neon glow
+    ctx.strokeStyle = accent;
+    ctx.fillStyle = 'rgba(8, 12, 24, 0.85)';
     ctx.lineWidth = 2;
-    ctx.shadowColor = ctx.strokeStyle;
-    ctx.shadowBlur = 8;
-
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 10;
     ctx.beginPath();
-    ctx.moveTo(0, -22);
-    ctx.lineTo(22, 0);
-    ctx.lineTo(0, 22);
-    ctx.lineTo(-22, 0);
+    ctx.moveTo(0, -24);
+    ctx.lineTo(24, 0);
+    ctx.lineTo(0, 24);
+    ctx.lineTo(-24, 0);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    // Inner Emblem (Blades / Crest)
-    ctx.fillStyle = isOpponent ? '#fca5a5' : '#7dd3fc';
+    // Inner bevel diamond
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -17);
+    ctx.lineTo(17, 0);
+    ctx.lineTo(0, 17);
+    ctx.lineTo(-17, 0);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Four-blade emblem
+    ctx.fillStyle = isOpponent ? '#fecaca' : '#a5f3fc';
     for (let i = 0; i < 4; i++) {
       ctx.save();
       ctx.rotate((i * Math.PI) / 2);
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(4, -14);
-      ctx.lineTo(0, -18);
-      ctx.lineTo(-4, -14);
+      ctx.moveTo(0, -13);
+      ctx.lineTo(3.5, -5);
+      ctx.lineTo(0, -2);
+      ctx.lineTo(-3.5, -5);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
     }
 
+    // Center gem
+    ctx.fillStyle = accent;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   }
 
-  renderCombos(ctx, w) {
-    // Player 1 Combo
-    if (this.comboDisplay.p1.timer > 0 && this.comboDisplay.p1.count > 1) {
+  renderCombos(ctx) {
+    const drawCombo = (count, timer, x, align, color) => {
+      // Pop-in scale at the start of the popup, fade at the end
+      const pop = Math.min(1, Math.max(0, (timer - 1.25) * 6));
+      const scale = 1 + pop * 0.6;
+      const alpha = Math.min(1, timer / 0.3);
       ctx.save();
-      ctx.font = '900 36px "Cinzel", serif';
-      ctx.fillStyle = '#f59e0b';
-      ctx.shadowColor = '#f59e0b';
-      ctx.shadowBlur = 15;
-      ctx.textAlign = 'left';
-      ctx.fillText(`${this.comboDisplay.p1.count} HITS!`, 90, 160);
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.translate(x, 150);
+      ctx.scale(scale, scale);
+      ctx.font = '900 34px "Cinzel", serif';
+      ctx.textAlign = align;
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 16;
+      ctx.fillText(`${count} HITS!`, 0, 0);
       ctx.restore();
-    }
+    };
 
-    // Player 2 Combo
+    if (this.comboDisplay.p1.timer > 0 && this.comboDisplay.p1.count > 1) {
+      drawCombo(this.comboDisplay.p1.count, this.comboDisplay.p1.timer, 224, 'left', '#fbbf24');
+    }
     if (this.comboDisplay.p2.timer > 0 && this.comboDisplay.p2.count > 1) {
-      ctx.save();
-      ctx.font = '900 36px "Cinzel", serif';
-      ctx.fillStyle = '#ef4444';
-      ctx.shadowColor = '#ef4444';
-      ctx.shadowBlur = 15;
-      ctx.textAlign = 'right';
-      ctx.fillText(`${this.comboDisplay.p2.count} HITS!`, w - 90, 160);
-      ctx.restore();
+      drawCombo(this.comboDisplay.p2.count, this.comboDisplay.p2.timer, 1056, 'right', '#f87171');
     }
   }
 }
