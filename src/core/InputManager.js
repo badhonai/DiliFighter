@@ -10,9 +10,27 @@ export class InputManager {
       kick: false,
       ranged: false,
       shadow: false,
+      block: false,
+      heavy: false,
     };
+
+    // Double-tap dash: a second tap of the same direction within 280 ms
+    // (keyboard edge or stick flick) queues a dash, consumed by the fighter.
+    this.lastTap = { dir: 0, time: 0 };
+    this.dashQueued = { dir: 0, time: 0 };
     this.virtualJustPressed = new Set();
+    // Digital state derived from the analog stick, with hysteresis so the
+    // fighter doesn't flicker between states near the dead zone edge.
+    // Rising edges (e.g. pushing up to jump) fire justPressed events,
+    // which the raw axis alone could never produce.
+    this.axisState = { left: false, right: false, up: false, down: false };
     this.touchActive = false;
+    // Timestamp of the latest touch/mouse press, plus an "epoch" marker: only
+    // presses AFTER the epoch count as activity. The epoch is set when a
+    // round becomes FIGHTING, so the mandatory "TAP TO PLAY" press (which
+    // happens earlier) doesn't instantly wake the waiting opponent.
+    this.lastPointerPress = 0;
+    this.activityEpoch = 0;
 
     this.setupListeners();
   }
@@ -21,10 +39,13 @@ export class InputManager {
     window.addEventListener('keydown', (e) => {
       // Don't capture standard browser reload / dev tools
       if (e.key === 'F5' || e.key === 'F12' || (e.ctrlKey && e.key === 'r')) return;
-      
+
       const code = e.code;
       if (!this.keysDown.has(code)) {
         this.justPressed.add(code);
+        // Rising edge (no auto-repeat) — feed the double-tap dash detector
+        if (GAME_CONFIG.KEYS.MOVE_LEFT.includes(code)) this.noteDirectionTap(-1);
+        if (GAME_CONFIG.KEYS.MOVE_RIGHT.includes(code)) this.noteDirectionTap(1);
       }
       this.keysDown.add(code);
 
@@ -38,10 +59,18 @@ export class InputManager {
       this.keysDown.delete(e.code);
     });
 
-    // Touch detection
-    window.addEventListener('touchstart', () => {
+    // Touch detection / first-activity detection (the opponent waits for it)
+    const markActive = () => {
       this.touchActive = true;
-    }, { passive: true });
+      this.lastPointerPress = performance.now();
+    };
+    window.addEventListener('touchstart', markActive, { passive: true });
+    window.addEventListener('mousedown', markActive, { passive: true });
+  }
+
+  /** Call when a round goes live: only presses after this wake the AI. */
+  markActivityEpoch() {
+    this.activityEpoch = performance.now();
   }
 
   // Update called at the end of every frame to reset justPressed
@@ -50,19 +79,55 @@ export class InputManager {
     this.virtualJustPressed.clear();
   }
 
+  /**
+   * True once the human has shown signs of life: any key, any touch, any
+   * stick movement, any virtual button. The opponent refuses to attack
+   * until this flips true, so an AFK player is never beaten up.
+   */
+  hasAnyActivity() {
+    // Only touches that happened after the round went live count
+    if (this.lastPointerPress >= this.activityEpoch && this.activityEpoch > 0) return true;
+    if (this.keysDown.size > 0 || this.justPressed.size > 0) return true;
+    if (this.virtualAxes.x !== 0 || this.virtualAxes.y !== 0) return true;
+    return Object.values(this.virtualButtons).some(Boolean);
+  }
+
+  /** Second tap of the same direction within 280 ms queues a dash. */
+  noteDirectionTap(dir) {
+    const now = performance.now();
+    if (this.lastTap.dir === dir && now - this.lastTap.time < 280) {
+      this.dashQueued = { dir, time: now };
+    }
+    this.lastTap = { dir, time: now };
+  }
+
+  /** Fighter polls this every frame; returns -1 | 0 | 1 exactly once. */
+  consumeDash() {
+    if (this.dashQueued.dir === 0) return 0;
+    if (performance.now() - this.dashQueued.time > 200) {
+      this.dashQueued = { dir: 0, time: 0 };
+      return 0; // staled out (player did something else first)
+    }
+    const dir = this.dashQueued.dir;
+    this.dashQueued = { dir: 0, time: 0 };
+    return dir;
+  }
+
   isActionDown(actionName) {
     const keyList = GAME_CONFIG.KEYS[actionName.toUpperCase()];
     if (keyList && keyList.some(k => this.keysDown.has(k))) return true;
 
-    // Check virtual inputs
-    if (actionName === 'move_left') return this.virtualAxes.x < -0.3;
-    if (actionName === 'move_right') return this.virtualAxes.x > 0.3;
-    if (actionName === 'jump') return this.virtualAxes.y < -0.4;
-    if (actionName === 'crouch') return this.virtualAxes.y > 0.4;
+    // Check virtual inputs (digital axis state with hysteresis)
+    if (actionName === 'move_left') return this.axisState.left;
+    if (actionName === 'move_right') return this.axisState.right;
+    if (actionName === 'jump') return this.axisState.up;
+    if (actionName === 'crouch') return this.axisState.down;
     if (actionName === 'punch') return this.virtualButtons.punch;
     if (actionName === 'kick') return this.virtualButtons.kick;
     if (actionName === 'ranged') return this.virtualButtons.ranged;
     if (actionName === 'shadow') return this.virtualButtons.shadow;
+    if (actionName === 'block') return this.virtualButtons.block;
+    if (actionName === 'heavy') return this.virtualButtons.heavy;
 
     return false;
   }
@@ -74,7 +139,33 @@ export class InputManager {
     return this.virtualJustPressed.has(actionName.toLowerCase());
   }
 
+  getVirtualAxis() {
+    return { x: this.virtualX || 0, y: this.virtualY || 0 };
+  }
+
   setVirtualAxis(x, y) {
+    this.virtualX = x;
+    this.virtualY = y;
+    const ENTER = 0.28, EXIT = 0.15;   // lighter stick = easier movement
+    const ENTER_Y = 0.45, EXIT_Y = 0.28;
+    const s = this.axisState;
+
+    // Hysteresis: state flips ON at ENTER, OFF at EXIT (prevents dead-zone flicker)
+    const wasLeft = s.left, wasRight = s.right;
+    s.left = x < -ENTER ? true : x > -EXIT ? false : s.left;
+    s.right = x > ENTER ? true : x < EXIT ? false : s.right;
+    // Stick flicks feed the double-tap dash detector too
+    if (s.left && !wasLeft) this.noteDirectionTap(-1);
+    if (s.right && !wasRight) this.noteDirectionTap(1);
+    const wasUp = s.up;
+    s.up = y < -ENTER_Y ? true : y > -EXIT_Y ? false : s.up;
+    s.down = y > ENTER_Y ? true : y < EXIT_Y ? false : s.down;
+
+    // Rising edge of "up" = a jump press the stick alone could never express
+    if (s.up && !wasUp) {
+      this.virtualJustPressed.add('jump');
+    }
+
     this.virtualAxes.x = x;
     this.virtualAxes.y = y;
   }

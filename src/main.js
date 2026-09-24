@@ -7,9 +7,9 @@ function initGame() {
   if (!canvas) return;
 
   new OrientationGuard();
-  new HelpMenu();
 
   const engine = new Engine(canvas);
+  new HelpMenu(engine);
   engine.run();
 
   // Expose on window for debugging & testing

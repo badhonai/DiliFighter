@@ -1,3 +1,5 @@
+import { Difficulty } from '../core/Difficulty.js';
+
 export class PauseMenu {
   constructor(engine) {
     this.engine = engine;
@@ -7,7 +9,22 @@ export class PauseMenu {
     this.createDOM();
   }
 
+  static ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M8 5h3.2v14H8zM12.8 5H16v14h-3.2z" fill="currentColor"/></svg>';
+  static ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+
   createDOM() {
+    // Persistent pause/play icon button in the top-left icon column
+    this.toggleBtn = document.createElement('button');
+    this.toggleBtn.id = 'pause-toggle-btn';
+    this.toggleBtn.type = 'button';
+    this.toggleBtn.setAttribute('aria-label', 'Pause or resume the battle');
+    this.toggleBtn.innerHTML = PauseMenu.ICON_PAUSE;
+    document.body.appendChild(this.toggleBtn);
+    this.toggleBtn.addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
+      this.togglePause();
+    });
+
     this.overlayEl = document.createElement('div');
     this.overlayEl.className = 'modal-overlay';
     this.overlayEl.id = 'pause-modal';
@@ -15,24 +32,19 @@ export class PauseMenu {
     this.overlayEl.innerHTML = `
       <div class="modal-card">
         <h2 class="modal-title">⚔️ BATTLE PAUSED</h2>
-        
-        <div style="margin-bottom: 24px; text-align: left; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Keyboard Controls:</h4>
-          <ul style="list-style: none; font-size: 13px; color: #cbd5e1; line-height: 1.8;">
-            <li><strong>A / D (or Arrows)</strong>: Move Left / Right</li>
-            <li><strong>W (or Up)</strong>: Jump / High Attack Modifier</li>
-            <li><strong>S (or Down)</strong>: Crouch / Low Guard</li>
-            <li><strong>J (or Z)</strong>: Punch / Dao Slashes (Combo: J, J, J)</li>
-            <li><strong>K (or X)</strong>: Kicks (S + K = Low Dragon Sweep!)</li>
-            <li><strong>L (or C)</strong>: Throw Shadow Kunai</li>
-            <li><strong>Space (or U)</strong>: Unleash Shadow Mode (at 100% meter)</li>
-          </ul>
-        </div>
 
         <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
           <button id="btn-resume" class="btn-action">RESUME BATTLE</button>
-          <button id="btn-sound" class="btn-action btn-secondary">AUDIO: ON</button>
           <button id="btn-restart" class="btn-action btn-secondary">RESTART MATCH</button>
+        </div>
+
+        <div style="margin-top: 22px;">
+          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Difficulty — pick any time</h4>
+          <div style="display: flex; justify-content: center; gap: 10px;">
+            <button id="diff-easy" class="btn-action btn-secondary">EASY</button>
+            <button id="diff-medium" class="btn-action btn-secondary">MEDIUM</button>
+            <button id="diff-hard" class="btn-action btn-secondary">HARD</button>
+          </div>
         </div>
       </div>
     `;
@@ -41,19 +53,34 @@ export class PauseMenu {
 
     // Event listeners
     document.getElementById('btn-resume').addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
       this.togglePause(false);
-    });
-
-    const soundBtn = document.getElementById('btn-sound');
-    soundBtn.addEventListener('click', () => {
-      const isMuted = this.engine.soundEngine.toggleMute();
-      soundBtn.textContent = isMuted ? 'AUDIO: OFF' : 'AUDIO: ON';
     });
 
     document.getElementById('btn-restart').addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
       this.togglePause(false);
       this.engine.restartMatch();
     });
+
+    // Difficulty segmented control
+    const refreshDiff = () => {
+      for (const name of Difficulty.all()) {
+        const el = document.getElementById('diff-' + name);
+        const active = Difficulty.current === name;
+        el.style.borderColor = active ? '#22d3ee' : '';
+        el.style.color = active ? '#22d3ee' : '';
+        el.style.boxShadow = active ? '0 0 14px rgba(34, 211, 238, 0.45)' : '';
+      }
+    };
+    for (const name of Difficulty.all()) {
+      document.getElementById('diff-' + name).addEventListener('click', () => {
+        Difficulty.set(name);
+        this.engine.soundEngine.playUIClick();
+        refreshDiff();
+      });
+    }
+    refreshDiff();
   }
 
   togglePause(forceState = null) {
@@ -63,6 +90,11 @@ export class PauseMenu {
     } else {
       this.overlayEl.classList.remove('active');
     }
+    if (this.toggleBtn) {
+      this.toggleBtn.innerHTML = this.isPaused ? PauseMenu.ICON_PLAY : PauseMenu.ICON_PAUSE;
+    }
+    this.engine.soundEngine.setPaused(this.isPaused);
+    this.engine.soundEngine.playUIClick();
     return this.isPaused;
   }
 }

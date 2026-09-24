@@ -4,6 +4,7 @@ export class VirtualJoystick {
     this.canvas = canvas;
     this.active = false;
     this.pointerId = null;
+    this.tapTrack = null;
 
     this.layout();
     this.baseX = this.idleX;
@@ -27,9 +28,9 @@ export class VirtualJoystick {
 
     this.leftEdge = -marginX;
     this.bottomEdge = 720 + marginY;
-    this.idleX = this.leftEdge + 168;
-    this.idleY = this.bottomEdge - 158;
-    this.radius = 78;
+    this.idleX = this.leftEdge + 182;
+    this.idleY = this.bottomEdge - 172;
+    this.radius = 94;
 
     if (!this.active) {
       this.baseX = this.idleX;
@@ -65,16 +66,22 @@ export class VirtualJoystick {
 
   setupEvents() {
     const handleStart = (clientX, clientY, id) => {
+      // First-touch lock: a second finger in the zone must not steal control
+      if (this.active) return;
+
       const { x, y } = this.getCanvasCoords(clientX, clientY);
 
-      // Bottom-left region for joystick (generous touch area for thumbs)
-      if (x < (this.leftEdge + 600) && y > 300) {
+      // Left half of the screen (center is always x=640 regardless of
+      // letterboxing), below the top HUD rows (generous thumb area)
+      if (x < 640 && y > 220) {
         this.active = true;
         this.pointerId = id;
         this.baseX = x;
         this.baseY = y;
         this.thumbX = x;
         this.thumbY = y;
+        // Track a possible quick TAP (double-tap = dash, no drag needed)
+        this.tapTrack = { id, x, y, t: performance.now() };
       }
     };
 
@@ -100,18 +107,43 @@ export class VirtualJoystick {
       this.inputManager.setVirtualAxis(normalizedX, normalizedY);
     };
 
-    const handleEnd = (id) => {
+    const handleEnd = (id, endX, endY) => {
       if (this.pointerId === id) {
         this.active = false;
         this.pointerId = null;
         this.thumbX = this.baseX = this.idleX;
         this.thumbY = this.baseY = this.idleY;
         this.inputManager.setVirtualAxis(0, 0);
+
+        // Quick TAP (not a drag/flick): taps left or right of the stick count
+        // as direction taps — two fast taps on a side = dash that way, so a
+        // dash never requires dragging the stick.
+        const tt = this.tapTrack;
+        this.tapTrack = null;
+        if (tt && tt.id === id && endX != null) {
+          const dt = performance.now() - tt.t;
+          const moved = Math.hypot(endX - tt.x, endY - tt.y);
+          if (dt < 260 && moved < 22) {
+            const side = tt.x - this.idleX;
+            if (side > 24) this.inputManager.noteDirectionTap(1);
+            else if (side < -24) this.inputManager.noteDirectionTap(-1);
+          }
+        }
       }
     };
 
-    // Touch events
+    // Touches that start on an HTML button/overlay belong to that element —
+    // they must never engage the joystick (e.g. the music/help buttons sit
+    // inside the stick's activation zone on some screens). Everything else
+    // is accepted: requiring e.target === canvas silently killed the stick
+    // on real devices whenever a transparent layer / fullscreen transition
+    // retargeted the touch away from the canvas element.
+    const isInteractiveUI = (el) =>
+      el && el.closest && el.closest('button, input, .modal-overlay.active, #help-modal.active, #rotate-overlay, #tap-to-play-overlay');
+
     window.addEventListener('touchstart', (e) => {
+      if (isInteractiveUI(e.target)) return;
+      if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         handleStart(t.clientX, t.clientY, t.identifier);
@@ -119,6 +151,7 @@ export class VirtualJoystick {
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
+      if (!isInteractiveUI(e.target) && e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         handleMove(t.clientX, t.clientY, t.identifier);
@@ -127,7 +160,8 @@ export class VirtualJoystick {
 
     window.addEventListener('touchend', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
-        handleEnd(e.changedTouches[i].identifier);
+        const t = e.changedTouches[i];
+        handleEnd(t.identifier, t.clientX, t.clientY);
       }
     });
 
@@ -190,7 +224,7 @@ export class VirtualJoystick {
     ctx.shadowColor = '#00f0ff';
     ctx.shadowBlur = this.active ? 15 : 5;
     ctx.beginPath();
-    ctx.arc(this.thumbX, this.thumbY, 26, 0, Math.PI * 2);
+    ctx.arc(this.thumbX, this.thumbY, 31, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 

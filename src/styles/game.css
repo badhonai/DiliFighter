@@ -50,15 +50,14 @@ html, body {
   z-index: 10;
 }
 
-#ui-overlay * {
-  pointer-events: auto;
-}
+
 
 /* Help "?" Button */
 #help-toggle-btn {
   position: fixed;
-  top: 10px;
-  right: 58px;
+  top: 56px;
+  left: 8px;
+  right: auto;
   width: 40px;
   height: 40px;
   background: rgba(10, 14, 22, 0.75);
@@ -74,11 +73,39 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  backdrop-filter: blur(4px);
 }
 
 #help-toggle-btn:hover {
   background: rgba(0, 240, 255, 0.15);
+}
+
+/* First-visit attention pulse: shown after the auto-opened guide is closed,
+   so players learn the guide lives behind the "?" button */
+#help-toggle-btn.attention {
+  animation: help-attention-bounce 1.6s ease-in-out infinite;
+  border-color: #00f0ff;
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+}
+
+#help-toggle-btn.attention::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 2px solid rgba(0, 240, 255, 0.85);
+  border-radius: 11px;
+  animation: help-attention-ring 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes help-attention-ring {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  100% { transform: scale(2.0); opacity: 0;   }
+}
+
+@keyframes help-attention-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
 }
 
 /* Help Guide Modal */
@@ -86,19 +113,16 @@ html, body {
   position: fixed;
   inset: 0;
   background: rgba(3, 6, 12, 0.88);
-  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 180;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
+  display: none;
   padding: 16px;
 }
 
 #help-modal.active {
-  opacity: 1;
+  display: flex;
   pointer-events: auto;
 }
 
@@ -140,6 +164,17 @@ html, body {
   width: 16px;
   height: 16px;
   display: block;
+}
+
+.help-hero {
+  width: 100%;
+  max-height: 150px;
+  object-fit: cover;
+  object-position: 50% 20%;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.12);
+  margin: 6px 0 16px;
 }
 
 .help-title {
@@ -184,6 +219,20 @@ html, body {
   color: #b6c2d2;
   font-size: 13.5px;
   margin: 0;
+  line-height: 1.45;
+}
+
+.help-text {
+  color: #b6c2d2;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.help-text strong,
+.help-row p strong {
+  color: #e2e8f0;
 }
 
 .help-grid {
@@ -238,19 +287,16 @@ html, body {
   width: 100%;
   height: 100%;
   background: rgba(3, 6, 12, 0.88);
-  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 50;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
+  display: none;
 }
 
 .modal-overlay.active {
-  opacity: 1;
+  display: flex;
   pointer-events: auto;
 }
 
@@ -361,7 +407,6 @@ html, body {
   position: fixed;
   inset: 0;
   background: rgba(3, 6, 12, 0.85);
-  backdrop-filter: blur(4px);
   display: none;
   justify-content: center;
   align-items: center;
@@ -388,8 +433,9 @@ html, body {
 /* Persistent Fullscreen Toggle Button */
 #fullscreen-toggle-btn {
   position: fixed;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  left: 8px;
+  right: auto;
   width: 40px;
   height: 40px;
   background: rgba(10, 14, 22, 0.75);
@@ -403,7 +449,6 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  backdrop-filter: blur(4px);
 }
 
 #fullscreen-toggle-btn:hover {
@@ -414,4 +459,81 @@ html, body {
   width: 20px;
   height: 20px;
   display: block;
+}
+
+/* Tutorial skip pill */
+#skip-tutorial-btn {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 140;
+  padding: 10px 24px;
+  font: 700 15px 'Rajdhani', sans-serif;
+  letter-spacing: 1.5px;
+  color: #06202a;
+  background: #67e8f9;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.5);
+}
+
+/* Pause/play — fourth icon in the top-left column */
+#pause-toggle-btn {
+  position: fixed;
+  top: 152px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  color: #7dd3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#pause-toggle-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+}
+
+#pause-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* Music on/off — third icon in the top-left column, under the manual button */
+#music-toggle-btn {
+  position: fixed;
+  top: 104px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  color: #38bdf8;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#music-toggle-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+}
+#music-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+#music-toggle-btn.off {
+  color: #64748b;
+  border-color: rgba(100, 116, 139, 0.45);
 }

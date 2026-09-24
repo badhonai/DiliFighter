@@ -6,6 +6,8 @@ export class TouchButtons {
     this.buttons = [
       { id: 'punch', icon: 'icons/punch.svg', name: 'Punch', x: 1180, y: 550, radius: 36, pressed: false },
       { id: 'kick', icon: 'icons/kick.svg', name: 'Kick', x: 1090, y: 620, radius: 34, pressed: false },
+      { id: 'block', icon: 'icons/block.svg', name: 'Block', x: 0, y: 0, radius: 30, pressed: false },
+      { id: 'heavy', icon: 'icons/heavy.svg', name: 'Heavy', x: 0, y: 0, radius: 30, pressed: false },
       { id: 'ranged', icon: 'icons/ranged.svg', name: 'Ranged', x: 1195, y: 440, radius: 28, pressed: false },
       { id: 'shadow', icon: 'icons/shadow.svg', name: 'Shadow', x: 1070, y: 500, radius: 32, pressed: false },
     ];
@@ -19,6 +21,11 @@ export class TouchButtons {
     }
 
     this.layout();
+    // Safety net: if the canvas had no size yet at construction, layout()
+    // early-returns and the buttons keep garbage coordinates — re-anchor on
+    // the next frames so touch never points at invisible buttons.
+    if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => this.layout());
+    setTimeout(() => this.layout(), 300);
     window.addEventListener('resize', () => this.layout());
     window.addEventListener('orientationchange', () => this.layout());
 
@@ -40,11 +47,16 @@ export class TouchButtons {
     const right = 1280 + marginX;
     const bottom = 720 + marginY;
 
+    // Ergonomic fan under the right thumb: core attacks on a natural arc,
+    // defense/power a row up, utilities on top — deliberately NOT a rigid
+    // grid, sizes tuned to importance so the thumb finds them by feel.
     const pos = {
-      punch:  { x: right - 78,  y: bottom - 185, radius: 54 },
-      kick:   { x: right - 188, y: bottom - 96,  radius: 50 },
-      ranged: { x: right - 80,  y: bottom - 330, radius: 44 },
-      shadow: { x: right - 222, y: bottom - 272, radius: 48 },
+      punch:  { x: right - 88,  y: bottom - 100, radius: 60 },
+      kick:   { x: right - 215, y: bottom - 125, radius: 55 },
+      block:  { x: right - 100, y: bottom - 238, radius: 53 },
+      heavy:  { x: right - 228, y: bottom - 252, radius: 53 },
+      ranged: { x: right - 158, y: bottom - 368, radius: 48 },
+      shadow: { x: right - 308, y: bottom - 352, radius: 52 },
     };
     for (const btn of this.buttons) {
       btn.x = pos[btn.id].x;
@@ -78,47 +90,86 @@ export class TouchButtons {
   }
 
   setupEvents() {
-    const checkButtons = (clientX, clientY, isDown) => {
-      const { x, y } = this.getCanvasCoords(clientX, clientY);
+    // Per-touch ownership: touchId -> Set of button ids it is holding.
+    // Buttons must be released when THAT touch ends, no matter where the
+    // finger is — the old position-based release left buttons stuck pressed
+    // forever if the finger slid off the button before lifting, which
+    // locked the fighter in its attack state and froze all movement.
+    this.heldBy = new Map();
 
+    // Reject ONLY touches that start on real interactive HTML UI (pause/help
+    // buttons, open modals). We deliberately do NOT require e.target to be
+    // the canvas: on real devices transparent layers, browser zoom wrappers
+    // and fullscreen transitions can retarget the event away from the
+    // canvas, which silently killed every on-screen button. Coordinate
+    // hit-testing below still guarantees only real button presses register.
+    const isInteractiveUI = (el) =>
+      el && el.closest && el.closest('button, input, .modal-overlay.active, #help-modal.active, #rotate-overlay, #tap-to-play-overlay');
+
+    const pressAt = (clientX, clientY, id) => {
+      const { x, y } = this.getCanvasCoords(clientX, clientY);
+      const nowHeld = new Set();
       for (const btn of this.buttons) {
         const dx = x - btn.x;
         const dy = y - btn.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist <= btn.radius + 12) {
-          btn.pressed = isDown;
-          this.inputManager.setVirtualButton(btn.id, isDown);
+        if (Math.sqrt(dx * dx + dy * dy) <= btn.radius + 12) {
+          nowHeld.add(btn.id);
+          if (!btn.pressed) {
+            btn.pressed = true;
+            this.inputManager.setVirtualButton(btn.id, true);
+          }
         }
       }
+      if (nowHeld.size > 0) this.heldBy.set(id, nowHeld);
     };
 
-    // Touch events
+    const releaseTouch = (id) => {
+      const owned = this.heldBy.get(id);
+      if (!owned) return;
+      for (const btnId of owned) {
+        // A button only releases when no other touch still holds it
+        let stillHeld = false;
+        for (const [otherId, otherSet] of this.heldBy) {
+          if (otherId !== id && otherSet.has(btnId)) { stillHeld = true; break; }
+        }
+        if (!stillHeld) {
+          const btn = this.buttons.find(b => b.id === btnId);
+          if (btn) btn.pressed = false;
+          this.inputManager.setVirtualButton(btnId, false);
+        }
+      }
+      this.heldBy.delete(id);
+    };
+
+    // Touches on HTML buttons/modals belong to those elements; everything
+    // else is fair game for coordinate-based button hit-testing.
     window.addEventListener('touchstart', (e) => {
+      if (isInteractiveUI(e.target)) return;
+      if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        checkButtons(t.clientX, t.clientY, true);
+        pressAt(t.clientX, t.clientY, t.identifier);
       }
     }, { passive: false });
 
     window.addEventListener('touchend', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        checkButtons(t.clientX, t.clientY, false);
+        releaseTouch(e.changedTouches[i].identifier);
+      }
+    });
+
+    window.addEventListener('touchcancel', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        releaseTouch(e.changedTouches[i].identifier);
       }
     });
 
     // Mouse fallback
     this.canvas.addEventListener('mousedown', (e) => {
-      checkButtons(e.clientX, e.clientY, true);
+      pressAt(e.clientX, e.clientY, 'mouse');
     });
     window.addEventListener('mouseup', () => {
-      for (const btn of this.buttons) {
-        if (btn.pressed) {
-          btn.pressed = false;
-          this.inputManager.setVirtualButton(btn.id, false);
-        }
-      }
+      releaseTouch('mouse');
     });
   }
 
@@ -134,6 +185,27 @@ export class TouchButtons {
 
       const isShadowBtn = btn.id === 'shadow';
       const pressed = btn.pressed;
+
+      // Shadow-ready beacon: pulsing halo + expanding ring. Pure gradients &
+      // strokes (no shadowBlur) so it glows hard even on low-FX phones.
+      if (isShadowBtn && (isShadowReady || isShadowActive)) {
+        const now = performance.now();
+        const pulse = 0.5 + 0.5 * Math.sin(now / 170);
+        const halo = ctx.createRadialGradient(0, 0, btn.radius * 0.5, 0, 0, btn.radius * 2.2);
+        halo.addColorStop(0, `rgba(0, 240, 255, ${(0.30 + 0.25 * pulse).toFixed(3)})`);
+        halo.addColorStop(1, 'rgba(0, 240, 255, 0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(0, 0, btn.radius * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        const rp = (now / 900) % 1;
+        ctx.strokeStyle = `rgba(0, 240, 255, ${((1 - rp) * 0.75).toFixed(3)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, btn.radius * (1 + rp * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       // Outer ring
       if (isShadowBtn) {

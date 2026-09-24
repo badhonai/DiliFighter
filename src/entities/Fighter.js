@@ -13,6 +13,9 @@ export class Fighter {
     this.y = y;
     this.vx = 0;
     this.vy = 0;
+    // Smoothed horizontal speed used by player walk input (ramps toward the
+    // target instead of snapping, so movement doesn't start/stop as a hard pop)
+    this.moveSpeed = 0;
     this.direction = direction; // 1 = right, -1 = left
 
     // Stats
@@ -33,11 +36,18 @@ export class Fighter {
     this.currentMove = null;
     this.attackPhase = null; // 'startup' | 'active' | 'recovery'
     this.frameTimer = 0;
+    // Brief invulnerability after recovering from stun/knockdown — breaks
+    // frame-perfect stun-locks so the defender always gets a chance to act.
+    this.invincibleTimer = 0;
     this.hasHitOpponent = false;
     this.comboCount = 0;
     this.comboResetTimer = 0;
     this.punchChainIndex = 0;
     this.kickChainIndex = 0;
+    // Double-tap dash state
+    this.dashTimer = 0;
+    this.dashDir = 0;
+    this.dashFxDone = false;
 
     // Defense & Stun
     this.stunDuration = 0;
@@ -54,28 +64,29 @@ export class Fighter {
   }
 
   getHurtboxes() {
+    const S = GAME_CONFIG.FIGHTER_SCALE;
     const isCrouching = this.state === 'CROUCH';
     const isKnockedDown = this.state === 'KNOCKDOWN';
 
     if (isKnockedDown) {
       // Grounded prone hurtbox
       return [
-        new Hitbox(this.x, this.y, 70, 25, 'hurtbox')
+        new Hitbox(this.x, this.y, 70 * S, 25 * S, 'hurtbox')
       ];
     }
 
     if (isCrouching) {
       return [
-        new Hitbox(this.x, this.y - 40, 42, 35, 'hurtbox'), // Torso
-        new Hitbox(this.x, this.y, 48, 40, 'hurtbox'),       // Legs
+        new Hitbox(this.x, this.y - 40 * S, 42 * S, 35 * S, 'hurtbox'), // Torso
+        new Hitbox(this.x, this.y, 48 * S, 40 * S, 'hurtbox'),          // Legs
       ];
     }
 
     // Standing / standard hurtboxes
     return [
-      new Hitbox(this.x, this.y - 75, 30, 26, 'hurtbox'),  // Head
-      new Hitbox(this.x, this.y - 45, 38, 40, 'hurtbox'),  // Torso
-      new Hitbox(this.x, this.y, 36, 45, 'hurtbox'),       // Legs
+      new Hitbox(this.x, this.y - 75 * S, 34 * S, 26 * S, 'hurtbox'),  // Head
+      new Hitbox(this.x, this.y - 45 * S, 44 * S, 40 * S, 'hurtbox'),  // Torso
+      new Hitbox(this.x, this.y, 42 * S, 45 * S, 'hurtbox'),           // Legs
     ];
   }
 
@@ -87,6 +98,8 @@ export class Fighter {
     const m = this.currentMove;
     if (!m.hitbox) return null;
 
+    // Reach stays at authored values — only the BODY scales visually, so
+    // melee attacks can never hit from absurd distances.
     const hx = this.x + m.hitbox.offsetX * this.direction;
     const hy = this.y + m.hitbox.offsetY;
 
@@ -101,6 +114,19 @@ export class Fighter {
       isHigh: m.height === 'HIGH',
       isKnockdown: m.isKnockdown || false,
     });
+  }
+
+  /** Quick burst dash from a double-tap. Cancelled by attacks/stun. */
+  startDash(dir) {
+    if (this.state === 'HIT_STUN' || this.state === 'KNOCKDOWN' || this.state === 'DEAD' || this.state === 'ATTACKING') return false;
+    if (this.y < GAME_CONFIG.PHYSICS.GROUND_Y - 5) return false;
+    this.state = 'DASH';
+    this.dashDir = dir;
+    this.dashTimer = 0.2;
+    this.dashFxDone = false;
+    this.vx = dir * 1150;
+    this.moveSpeed = 0;
+    return true;
   }
 
   startAttack(move) {
@@ -124,6 +150,9 @@ export class Fighter {
 
   takeHit(hitbox, attacker, soundEngine, particleSystem) {
     if (this.state === 'DEAD') return;
+
+    // Recovery grace: attacks whiff for a moment right after stun/knockdown
+    if (this.invincibleTimer > 0) return 'evaded';
 
     const props = hitbox.properties;
     const isShadow = props.isShadow;
@@ -192,6 +221,7 @@ export class Fighter {
     this.y = GAME_CONFIG.PHYSICS.GROUND_Y;
     this.vx = 0;
     this.vy = 0;
+    this.moveSpeed = 0;
     this.direction = direction;
     this.state = 'IDLE';
     this.currentMove = null;
@@ -214,6 +244,21 @@ export class Fighter {
       this.direction = opponent.x > this.x ? 1 : -1;
     }
 
+    // Handle dash lifecycle (one-shot burst; attacks cancel it via startAttack)
+    if (this.state === 'DASH') {
+      if (!this.dashFxDone) {
+        this.dashFxDone = true;
+        particleSystem.emitDust(this.x, this.y, 5);
+        particleSystem.emitDashStreaks(this.x, this.y - 45, this.dashDir);
+        soundEngine.playSwing(this.shadowSystem.isActive ? 160 : 200);
+      }
+      this.dashTimer -= dt;
+      if (this.dashTimer <= 0) {
+        this.state = 'IDLE';
+        this.vx = 0;
+      }
+    }
+
     // Handle Attack Phase Progressions
     if (this.state === 'ATTACKING' && this.currentMove) {
       const move = this.currentMove;
@@ -229,6 +274,7 @@ export class Fighter {
 
           // Spawn projectile if this is a ranged throw
           if (move === MOVES.RANGED_THROW) {
+            soundEngine.playRangedLaunch();
             projectiles.push(new Projectile(
               this.x + 35 * this.direction,
               this.y - 65,
@@ -257,16 +303,19 @@ export class Fighter {
     }
 
     // Handle Hit Stun & Knockdown
+    this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     if (this.state === 'HIT_STUN') {
       this.stunDuration -= dt;
       if (this.stunDuration <= 0) {
         this.state = 'IDLE';
+        this.invincibleTimer = 0.12; // stand back up with a breath of safety
       }
     } else if (this.state === 'KNOCKDOWN' && this.health > 0) {
       this.stunDuration -= dt;
       this.actionProgress = Math.max(0, 1 - this.stunDuration / 0.8);
       if (this.stunDuration <= 0) {
         this.state = 'IDLE';
+        this.invincibleTimer = 0.25; // getting up must never be punishable
         particleSystem.emitDust(this.x, this.y, 8);
       }
     }
@@ -276,15 +325,16 @@ export class Fighter {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
 
-    // Apply ground friction
+    // Apply ground friction (dash holds its burst speed — no friction bleed)
     if (this.y >= GAME_CONFIG.PHYSICS.GROUND_Y) {
       this.y = GAME_CONFIG.PHYSICS.GROUND_Y;
       this.vy = 0;
-      this.vx *= GAME_CONFIG.PHYSICS.FRICTION;
+      this.vx *= this.state === 'DASH' ? 1 : GAME_CONFIG.PHYSICS.FRICTION;
 
       if (this.state === 'JUMP') {
         this.state = 'IDLE';
         particleSystem.emitDust(this.x, this.y, 4);
+        soundEngine.playLand();
       }
     }
 
