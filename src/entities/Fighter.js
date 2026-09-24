@@ -84,9 +84,9 @@ export class Fighter {
 
     // Standing / standard hurtboxes
     return [
-      new Hitbox(this.x, this.y - 75 * S, 30 * S, 26 * S, 'hurtbox'),  // Head
-      new Hitbox(this.x, this.y - 45 * S, 38 * S, 40 * S, 'hurtbox'),  // Torso
-      new Hitbox(this.x, this.y, 36 * S, 45 * S, 'hurtbox'),           // Legs
+      new Hitbox(this.x, this.y - 75 * S, 34 * S, 26 * S, 'hurtbox'),  // Head
+      new Hitbox(this.x, this.y - 45 * S, 44 * S, 40 * S, 'hurtbox'),  // Torso
+      new Hitbox(this.x, this.y, 42 * S, 45 * S, 'hurtbox'),           // Legs
     ];
   }
 
