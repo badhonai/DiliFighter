@@ -32,32 +32,14 @@ export class PauseMenu {
     this.overlayEl.innerHTML = `
       <div class="modal-card">
         <h2 class="modal-title">⚔️ BATTLE PAUSED</h2>
-        
-        <div style="margin-bottom: 24px; text-align: left; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Keyboard Controls:</h4>
-          <ul style="list-style: none; font-size: 13px; color: #cbd5e1; line-height: 1.8;">
-            <li><strong>A / D (or Arrows)</strong>: Move Left / Right</li>
-            <li><strong>Double-tap ← / →</strong>: Dash</li>
-            <li><strong>W (or Up)</strong>: Jump / High Attack Modifier</li>
-            <li><strong>S (or Down)</strong>: Crouch / Low Guard</li>
-            <li><strong>V (or ;)</strong>: Hold to Block</li>
-            <li><strong>J (or Z)</strong>: Punch / Dao Slashes (Combo: J, J, J)</li>
-            <li><strong>K (or X)</strong>: Kicks (S + K = Low Dragon Sweep!)</li>
-            <li><strong>I (or B)</strong>: Heavy Attack (Mountain Splitter)</li>
-            <li><strong>L (or C)</strong>: Throw Shadow Kunai</li>
-            <li><strong>Space (or U)</strong>: Unleash Shadow Mode (at 100% meter)</li>
-            <li><strong>Esc (or P)</strong>: Pause / Resume</li>
-          </ul>
-        </div>
 
         <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
           <button id="btn-resume" class="btn-action">RESUME BATTLE</button>
-          <button id="btn-sound" class="btn-action btn-secondary">AUDIO: ON</button>
           <button id="btn-restart" class="btn-action btn-secondary">RESTART MATCH</button>
         </div>
 
         <div style="margin-top: 22px;">
-          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Difficulty</h4>
+          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Difficulty — pick any time</h4>
           <div style="display: flex; justify-content: center; gap: 10px;">
             <button id="diff-easy" class="btn-action btn-secondary">EASY</button>
             <button id="diff-medium" class="btn-action btn-secondary">MEDIUM</button>
@@ -73,12 +55,6 @@ export class PauseMenu {
     document.getElementById('btn-resume').addEventListener('click', () => {
       this.engine.soundEngine.playUIClick();
       this.togglePause(false);
-    });
-
-    const soundBtn = document.getElementById('btn-sound');
-    soundBtn.addEventListener('click', () => {
-      const isMuted = this.engine.soundEngine.toggleMute();
-      soundBtn.textContent = isMuted ? 'AUDIO: OFF' : 'AUDIO: ON';
     });
 
     document.getElementById('btn-restart').addEventListener('click', () => {

@@ -24,7 +24,7 @@ export class Tutorial {
         done: (e) => e.player.state === 'BLOCK' },
       { id: 'heavy', text: 'TAP HEAVY FOR A POWER SMASH',
         done: (e) => (e.player.currentMove?.name || '').includes('Splitter') },
-      { id: 'player', text: 'DOUBLE-TAP A DIRECTION (OR DOUBLE-FLICK STICK) TO DASH',
+      { id: 'player', text: 'TAP TWICE FAST:  → →  OR  ← ←  TO DASH',
         done: (e) => e.player.state === 'DASH' },
       { id: 'ranged', text: 'TAP RANGED TO THROW A KUNAI',
         done: (e) => (e.player.currentMove?.name || '').includes('Kunai') },
@@ -84,6 +84,14 @@ export class Tutorial {
   update() {
     if (!this.active) return;
     this.time += 1 / 60;
+
+    // Self-heal: a restart/round-reset zeroes the shadow meter — the shadow
+    // step must ALWAYS be completable, so keep the tank full while it's up.
+    const ss = this.engine.player.shadowSystem;
+    if (this.step >= this.steps.length - 1 && !ss.isActive && ss.energy < ss.maxEnergy) {
+      ss.energy = ss.maxEnergy;
+    }
+
     const step = this.steps[this.step];
     if (step && step.done(this.engine)) {
       this.step++;
@@ -122,6 +130,35 @@ export class Tutorial {
     ctx.lineTo(t.x + 9, t.y - t.r - 34 + bounce);
     ctx.closePath();
     ctx.fill();
+
+    // Dash step: animated double chevrons streaming both directions so the
+    // "tap twice" idea reads without words
+    if (step.id === 'player') {
+      const flow = (this.time * 90) % 46;
+      ctx.strokeStyle = 'rgba(103, 232, 249, 0.95)';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const dir of [1, -1]) {
+        for (let i = 0; i < 2; i++) {
+          const cx = t.x + dir * (70 + i * 46 + flow);
+          const fade = 1 - (flow / 46) * 0.7 - i * 0.25;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0.15, fade);
+          ctx.beginPath();
+          ctx.moveTo(cx - dir * 10, t.y - 14);
+          ctx.lineTo(cx + dir * 6, t.y);
+          ctx.lineTo(cx - dir * 10, t.y + 14);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+      // "x2" hint
+      ctx.font = '800 20px "Rajdhani", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#a5f3fc';
+      ctx.fillText('TAP  ×2  FAST', t.x, t.y + t.r + 34);
+    }
     ctx.restore();
 
     // Instruction banner

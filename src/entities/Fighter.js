@@ -98,11 +98,12 @@ export class Fighter {
     const m = this.currentMove;
     if (!m.hitbox) return null;
 
-    const S = GAME_CONFIG.FIGHTER_SCALE;
-    const hx = this.x + m.hitbox.offsetX * S * this.direction;
-    const hy = this.y + m.hitbox.offsetY * S;
+    // Reach stays at authored values — only the BODY scales visually, so
+    // melee attacks can never hit from absurd distances.
+    const hx = this.x + m.hitbox.offsetX * this.direction;
+    const hy = this.y + m.hitbox.offsetY;
 
-    return new Hitbox(hx, hy, m.hitbox.w * S, m.hitbox.h * S, 'hitbox', {
+    return new Hitbox(hx, hy, m.hitbox.w, m.hitbox.h, 'hitbox', {
       damage: m.damage * (this.shadowSystem.isActive ? 1.3 : 1.0),
       knockbackX: m.knockback.x * this.direction,
       knockbackY: m.knockback.y,

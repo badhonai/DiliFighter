@@ -475,18 +475,18 @@ export class Engine {
     // 1. Stage (Temple Courtyard / Shadow Realm)
     this.stage.render(ctx);
 
-    // 2. Projectiles
-    for (const proj of this.projectiles) {
-      proj.render(ctx);
-    }
-
-    // 3. Fighters (Render order based on who is attacking)
+    // 2. Fighters (Render order based on who is attacking)
     if (this.player.state === 'ATTACKING') {
       this.opponent.render(ctx);
       this.player.render(ctx);
     } else {
       this.player.render(ctx);
       this.opponent.render(ctx);
+    }
+
+    // 3. Projectiles — above fighters so kunai never vanish behind bodies
+    for (const proj of this.projectiles) {
+      proj.render(ctx);
     }
 
     // 4. Particles & Slashes

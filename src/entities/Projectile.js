@@ -8,7 +8,7 @@ export class Projectile {
     this.owner = owner;
     this.isShadow = isShadow;
     // Deliberately readable flight speed — projectiles must be dodge-able
-    this.speed = isShadow ? 680 : 440;
+    this.speed = isShadow ? 680 : 380;
     this.damage = isShadow ? 80 : 45;
     this.stunFrames = 18;
     this.active = true;
@@ -41,10 +41,10 @@ export class Projectile {
       particleSystem.emitShadowEmbers(this.x, this.y, 1);
     } else {
       particleSystem.particles.push({
-        x: this.x - this.direction * 10, y: this.y,
+        x: this.x - this.direction * 12, y: this.y,
         vx: -this.direction * 60, vy: 0,
-        size: 2.4, color: 'rgba(147, 231, 255, 0.8)',
-        alpha: 0.8, life: 0.18, maxLife: 0.18, type: 'spark',
+        size: 3.4, color: 'rgba(186, 240, 255, 0.9)',
+        alpha: 0.9, life: 0.22, maxLife: 0.22, type: 'spark',
       });
     }
 
@@ -78,18 +78,19 @@ export class Projectile {
     } else {
       // Steel Kunai / Throwing Dagger — big, bright and halo-lit so it never
       // disappears against busy stage art (halo uses gradients: phone-safe)
-      const halo = ctx.createRadialGradient(0, 0, 2, 0, 0, 30);
-      halo.addColorStop(0, 'rgba(147, 231, 255, 0.5)');
-      halo.addColorStop(1, 'rgba(147, 231, 255, 0)');
+      const halo = ctx.createRadialGradient(0, 0, 2, 0, 0, 42);
+      halo.addColorStop(0, 'rgba(186, 240, 255, 0.75)');
+      halo.addColorStop(0.5, 'rgba(103, 232, 249, 0.35)');
+      halo.addColorStop(1, 'rgba(103, 232, 249, 0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(0, 0, 30, 0, Math.PI * 2);
+      ctx.arc(0, 0, 42, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.scale(1.7, 1.7);
-      ctx.fillStyle = '#e2e8f0';
-      ctx.strokeStyle = '#67e8f9';
-      ctx.lineWidth = 1.4;
+      ctx.scale(2.2, 2.2);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 1.6;
 
       ctx.beginPath();
       ctx.moveTo(14, 0);
