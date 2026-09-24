@@ -18,12 +18,17 @@ export const GAME_CONFIG = {
     FRICTION: 0.85,
   },
   
+  // Fighters render & fight this much larger than the original sprites.
+  // NOTE: top-level on purpose — Fighter/FighterRenderer read
+  // GAME_CONFIG.FIGHTER_SCALE directly (a previous nesting inside MATCH made
+  // it undefined, NaN-ing hurtboxes so every attack hit from any distance and
+  // kunai "collided" on their first frame and vanished before rendering).
+  FIGHTER_SCALE: 1.22,
+
   MATCH: {
     ROUND_TIME: 60,
     ROUNDS_TO_WIN: 2,
     MAX_HEALTH: 1500,
-  // Fighters render & fight this much larger than the original sprites
-  FIGHTER_SCALE: 1.22,
     MAX_SHADOW: 100,
     SHADOW_GAIN_ON_HIT: 12,
     SHADOW_GAIN_ON_DAMAGE: 6,

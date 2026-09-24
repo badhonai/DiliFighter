@@ -92,10 +92,10 @@ export class HUD {
       let n = 0;
       if (projectiles) for (const p of projectiles) if (p.active) n++;
       ctx.save();
-      ctx.font = '600 12px "Rajdhani", system-ui, sans-serif';
+      ctx.font = '700 14px "Rajdhani", system-ui, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
+      ctx.fillStyle = 'rgba(186, 220, 235, 0.85)';
       ctx.fillText('build ' + __BUILD_ID__ + (n ? '  ·  kunai ' + n : ''), 10, 712);
       ctx.restore();
     }

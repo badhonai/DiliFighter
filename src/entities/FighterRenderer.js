@@ -535,16 +535,15 @@ export class FighterRenderer {
         }
         ctx.fillRect(-2.7, -2.7, 5.4, 5.4);
         ctx.restore();
-        // Black left-pointing chevron sitting on the RIGHT of the white square
+        // Black left-pointing chevron sitting on the RIGHT of the white square —
+        // SOLID (filled center, only a shallow notch) like the mascot reference
         if (!isShadow) {
           ctx.fillStyle = '#0b1220';
           ctx.beginPath();
-          ctx.moveTo(0.1, 0);        // left tip
-          ctx.lineTo(3.3, -3.2);     // top-right
-          ctx.lineTo(3.3, -1.3);
-          ctx.lineTo(1.5, 0);        // inner notch
-          ctx.lineTo(3.3, 1.3);
-          ctx.lineTo(3.3, 3.2);      // bottom-right
+          ctx.moveTo(0.0, 0);        // left tip
+          ctx.lineTo(3.4, -3.3);     // top-right
+          ctx.lineTo(2.4, 0);        // shallow right notch (stays solid)
+          ctx.lineTo(3.4, 3.3);      // bottom-right
           ctx.closePath();
           ctx.fill();
         }
