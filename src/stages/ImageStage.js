@@ -8,16 +8,12 @@
  */
 
 const ARENAS = [
-  {
-    name: 'Neon Rain Alley',
-    src: 'arenas/neon.jpg',
-    particle: 'rain',
-  },
-  {
-    name: 'Sunrise Cliff Dojo',
-    src: 'arenas/cliff.jpg',
-    particle: 'leaves',
-  },
+  { name: 'Shadow Realm Void', src: 'arenas/void.jpg', particle: 'embers', color: '#22d3ee' },
+  { name: 'Neon Rooftop Rain', src: 'arenas/rooftop.jpg', particle: 'rain', color: '#22d3ee' },
+  { name: 'Ember Forge Hall', src: 'arenas/forge.jpg', particle: 'embers', color: '#fb923c' },
+  { name: 'Sky Palace Ruins', src: 'arenas/skyruins.jpg', particle: 'embers', color: '#a78bfa' },
+  { name: 'Holo Tournament Ring', src: 'arenas/holo.jpg', particle: 'embers', color: '#67e8f9' },
+  { name: 'Desert Fortress Dusk', src: 'arenas/desert.jpg', particle: 'leaves', color: '#fbbf24' },
 ];
 
 export class ImageStage {
@@ -46,7 +42,7 @@ export class ImageStage {
       });
     }
 
-    // Drifting leaves (Cliff Dojo)
+    // Drifting leaves (warm dust in the desert arena)
     this.leaves = [];
     for (let i = 0; i < 30; i++) {
       this.leaves.push({
@@ -59,6 +55,19 @@ export class ImageStage {
         rotSpeed: (Math.random() * 2 - 1) * 2,
         alpha: 0.55 + Math.random() * 0.4,
         hue: 12 + Math.random() * 26, // crimson-to-orange maple tones
+      });
+    }
+
+    // Rising themed embers (void / forge / sky ruins / holo ring)
+    this.embers = [];
+    for (let i = 0; i < 40; i++) {
+      this.embers.push({
+        x: Math.random() * 1280,
+        y: Math.random() * 720,
+        r: 1 + Math.random() * 2.2,
+        vy: 26 + Math.random() * 44,
+        a: 0.3 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2,
       });
     }
   }
@@ -100,11 +109,36 @@ export class ImageStage {
         p.y = Math.random() * 400 - 50;
       }
     }
+
+    // Embers rise and wrap
+    for (const e of this.embers) {
+      e.y -= e.vy * dt;
+      if (e.y < -12) {
+        e.y = 732;
+        e.x = Math.random() * 1280;
+      }
+    }
   }
 
   render(ctx) {
     const s = this.shadowTransition;
     const img = this.images[this.arenaIndex];
+
+    // Full-bleed backdrop: paint EVERY device pixel (including letterbox
+    // bands on tall/wide screens) with the arena art, dimmed — so the play
+    // frame always blends into scenery instead of black bars.
+    const cc = ctx.canvas;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (img && img.naturalWidth) {
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const sc = Math.max(cc.width / iw, cc.height / ih);
+      const dw = iw * sc, dh = ih * sc;
+      ctx.drawImage(img, (cc.width - dw) / 2, (cc.height - dh) / 2, dw, dh);
+      ctx.fillStyle = 'rgba(5, 7, 10, 0.5)';
+      ctx.fillRect(0, 0, cc.width, cc.height);
+    }
+    ctx.restore();
 
     // Cover-fit the world art to whatever the current viewport is (same calm
     // framing as the original stage: the full painting, no camera punch-in).
@@ -143,6 +177,7 @@ export class ImageStage {
       ctx.save();
       ctx.globalAlpha = normalAlpha;
       if (this.arena.particle === 'rain') this.renderRain(ctx);
+      else if (this.arena.particle === 'embers') this.renderEmbers(ctx);
       else this.renderLeaves(ctx);
       ctx.restore();
     }
@@ -194,6 +229,21 @@ export class ImageStage {
       ctx.stroke();
       ctx.restore();
     }
+  }
+
+  renderEmbers(ctx) {
+    const col = this.arena.color || '#22d3ee';
+    ctx.save();
+    ctx.fillStyle = col;
+    for (const e of this.embers) {
+      ctx.save();
+      ctx.globalAlpha = e.a * (0.55 + 0.45 * Math.sin(this.ambientTime * 2 + e.phase));
+      ctx.beginPath();
+      ctx.arc(e.x + Math.sin(this.ambientTime * 0.8 + e.phase) * 9, e.y, e.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
   }
 
   renderLeaves(ctx) {
