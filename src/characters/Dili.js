@@ -129,7 +129,9 @@ export class Dili extends Fighter {
     }
 
     // --- Movement / Neutral States ---
-    if (this.state === 'ATTACKING') return;
+    // ALWAYS moveable: even mid-attack (45% speed) or while blocking (50%),
+    // so the fighter never feels locked in place. Hitstun/knockdown still lock.
+    const busyMult = this.state === 'ATTACKING' ? 0.45 : this.state === 'BLOCK' ? 0.5 : 1;
 
     // Double-tap dash (startDash validates state/ground)
     if (dashDir !== 0 && this.startDash(dashDir)) {
@@ -144,30 +146,28 @@ export class Dili extends Fighter {
       return;
     }
 
-    // Jump
-    if (isJumping && this.y >= 575) {
+    // Jump (attacks stay committed — no jump-cancelling swings)
+    if (isJumping && this.y >= 575 && this.state !== 'ATTACKING') {
       this.vy = -600;
       this.state = 'JUMP';
       soundEngine.playJump();
       return;
     }
 
-    // Crouch (also guards low attacks)
-    if (isCrouching && this.y >= 575) {
+    // Crouch (also guards low attacks) — never cancels an attack
+    if (isCrouching && this.y >= 575 && this.state !== 'ATTACKING') {
       this.state = 'CROUCH';
       this.vx = 0;
       this.moveSpeed = 0;
       return;
     }
 
-    // Block: hold the shield to guard high/mid attacks (grounded)
-    if (isBlocking && this.y >= 575) {
+    // Block: hold the shield to guard high/mid attacks (grounded).
+    // Blocking no longer roots you — the walk section below lets you
+    // shuffle at half speed while guarding.
+    if (isBlocking && this.y >= 575 && this.state !== 'ATTACKING') {
       this.state = 'BLOCK';
-      this.vx = 0;
-      this.moveSpeed = 0;
-      return;
-    }
-    if (this.state === 'BLOCK' && !isBlocking) {
+    } else if (this.state === 'BLOCK' && !isBlocking) {
       this.state = 'IDLE';
     }
 
@@ -183,13 +183,15 @@ export class Dili extends Fighter {
     this.moveSpeed += (targetSpeed - this.moveSpeed) * blend;
     // Snap to a full stop so the fighter doesn't micro-crawl forever
     if (targetSpeed === 0 && Math.abs(this.moveSpeed) < 24) this.moveSpeed = 0;
-    this.vx = this.moveSpeed;
-    if (this.moveSpeed > 8) {
-      this.state = this.direction === 1 ? 'WALK_FORWARD' : 'WALK_BACK';
-    } else if (this.moveSpeed < -8) {
-      this.state = this.direction === -1 ? 'WALK_FORWARD' : 'WALK_BACK';
-    } else if (this.y >= 575) {
-      this.state = 'IDLE';
+    this.vx = this.moveSpeed * busyMult;
+    if (this.state !== 'ATTACKING' && this.state !== 'BLOCK') {
+      if (this.moveSpeed > 8) {
+        this.state = this.direction === 1 ? 'WALK_FORWARD' : 'WALK_BACK';
+      } else if (this.moveSpeed < -8) {
+        this.state = this.direction === -1 ? 'WALK_FORWARD' : 'WALK_BACK';
+      } else if (this.y >= 575) {
+        this.state = 'IDLE';
+      }
     }
   }
 }

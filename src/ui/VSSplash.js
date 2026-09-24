@@ -79,9 +79,14 @@ export class VSSplash {
 
     ctx.save();
 
-    // Dim the arena behind the cards
+    // Dim the arena behind the cards — mapped to the FULL canvas (not just
+    // the world frame) so the darkening covers every edge on any screen.
+    ctx.save();
+    const dimC = ctx.canvas;
+    ctx.setTransform(dimC.width / 1280, 0, 0, dimC.height / 720, 0, 0);
     ctx.fillStyle = `rgba(3, 6, 12, ${alpha.toFixed(3)})`;
     ctx.fillRect(0, 0, 1280, 720);
+    ctx.restore();
 
     const e = VSSplash.easeOutCubic(Math.min(1, t / 0.55));
     const w = 310, h = 440, y = 140;

@@ -252,6 +252,33 @@ export class Engine {
     this.player.update(actorDt, this.opponent, this.soundEngine, this.particleSystem, this.projectiles);
     this.opponent.update(effectiveDt, this.player, this.soundEngine, this.particleSystem, this.projectiles);
 
+    // Body pushboxes: fighters are SOLID. They shove each other instead of
+    // overlapping/phasing — no more "connected" feeling when walking.
+    {
+      const p = this.player, o = this.opponent;
+      const minSep = 64;
+      const dx = o.x - p.x;
+      const bothUp = p.y >= 570 && o.y >= 570;
+      if (bothUp && p.state !== 'KNOCKDOWN' && o.state !== 'KNOCKDOWN' && Math.abs(dx) < minSep) {
+        const dir = dx === 0 ? (p.direction || 1) : Math.sign(dx);
+        const push = (minSep - Math.abs(dx)) / 2;
+        p.x -= push * dir;
+        o.x += push * dir;
+        const L = GAME_CONFIG.PHYSICS.STAGE_LEFT, R = GAME_CONFIG.PHYSICS.STAGE_RIGHT;
+        p.x = Math.max(L, Math.min(R, p.x));
+        o.x = Math.max(L, Math.min(R, o.x));
+        // Cornered against a wall? shove the free fighter the rest
+        const dx2 = o.x - p.x;
+        if (Math.abs(dx2) < minSep) {
+          const need = minSep - Math.abs(dx2);
+          const d2 = dx2 === 0 ? dir : Math.sign(dx2);
+          const oFree = o.x + need * d2 <= R && o.x + need * d2 >= L;
+          if (oFree) o.x += need * d2;
+          else p.x = Math.max(L, Math.min(R, p.x - need * d2));
+        }
+      }
+    }
+
     // Update Projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];

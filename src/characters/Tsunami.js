@@ -29,6 +29,13 @@ export class Tsunami extends Fighter {
     const dist = Math.abs(this.x - player.x);
     const toPlayerDir = Math.sign(player.x - this.x);
 
+    // Like the player, Tsunami can step while swinging — keeps both fighters
+    // feeling alive instead of rooting mid-attack.
+    if (this.state === 'ATTACKING') {
+      if (dist > 140) this.vx = toPlayerDir * 90;
+      return;
+    }
+
     // 1. Auto-activate Shadow Mode when energy reaches 100%
     if (this.shadowSystem.isReady() && dist < 320) {
       this.shadowSystem.activate();
