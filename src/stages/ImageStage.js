@@ -20,7 +20,6 @@ export class ImageStage {
   constructor() {
     this.arenaIndex = Math.floor(Math.random() * ARENAS.length);
     this.images = [];
-    this.blur = [];
     this.ambientTime = 0;
     this.shadowTransition = 0; // 0 = full normal, 1 = full shadow realm
 
@@ -28,20 +27,7 @@ export class ImageStage {
     ARENAS.forEach((a, i) => {
       const img = new Image();
       img.src = `${import.meta.env.BASE_URL}${a.src}`;
-      img.onload = () => {
-        this.images[i] = img;
-        // Tiny offscreen copy — upscaling it later yields a free soft blur for
-        // the full-bleed backdrop, so every screen edge shows arena art.
-        try {
-          const t = document.createElement('canvas');
-          if (t.getContext) {
-            t.width = 96;
-            t.height = 54;
-            t.getContext('2d').drawImage(img, 0, 0, 96, 54);
-            this.blur[i] = t;
-          }
-        } catch (e) { /* headless envs: backdrop falls back to sharp art */ }
-      };
+      img.onload = () => { this.images[i] = img; };
     });
 
     // Rain streaks (Neon Alley)
@@ -138,43 +124,12 @@ export class ImageStage {
     const s = this.shadowTransition;
     const img = this.images[this.arenaIndex];
 
-    // Full-bleed backdrop: paint EVERY device pixel (including letterbox
-    // bands on tall/wide screens) with a softly blurred, brightened copy of
-    // the arena art — the play frame melts into scenery; no black, ever.
-    const cc = ctx.canvas;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const soft = this.blur[this.arenaIndex];
-    if (soft) {
-      const sc = Math.max(cc.width / soft.width, cc.height / soft.height);
-      const dw = soft.width * sc, dh = soft.height * sc;
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(soft, (cc.width - dw) / 2, (cc.height - dh) / 2, dw, dh);
-      ctx.fillStyle = 'rgba(5, 7, 10, 0.25)';
-      ctx.fillRect(0, 0, cc.width, cc.height);
-    } else if (img && img.naturalWidth) {
-      const iw = img.naturalWidth, ih = img.naturalHeight;
-      const sc = Math.max(cc.width / iw, cc.height / ih);
-      const dw = iw * sc, dh = ih * sc;
-      ctx.drawImage(img, (cc.width - dw) / 2, (cc.height - dh) / 2, dw, dh);
-      ctx.fillStyle = 'rgba(5, 7, 10, 0.25)';
-      ctx.fillRect(0, 0, cc.width, cc.height);
-    }
-    ctx.restore();
-
-    // Cover-fit the world art to whatever the current viewport is (same calm
-    // framing as the original stage: the full painting, no camera punch-in).
-    // The artwork is AI-outpainted wider than 16:9, so beyond the world frame
-    // there is real painted scenery on both sides — when the camera pans, the
-    // extended sides fill the view instead of showing black.
+    // Pin the stage to the EXACT canvas rectangle, independent of camera
+    // zoom/pan/shake — the artwork covers every pixel on every edge, so no
+    // gap can ever appear at the bottom (or anywhere), on any device.
     const c = ctx.canvas;
-    const m = ctx.getTransform();
-    const unitPx = Math.hypot(m.a, m.b);
-    const scaleX = (c.width / 1280) / unitPx;
-    const scaleY = (c.height / 720) / unitPx;
-
     ctx.save();
-    ctx.scale(scaleX, scaleY);
+    ctx.setTransform(c.width / 1280, 0, 0, c.height / 720, 0, 0);
 
     if (img) {
       // Map the painting's central 16:9 slice to the world frame (0..1280)
