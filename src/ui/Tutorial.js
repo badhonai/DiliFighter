@@ -24,7 +24,7 @@ export class Tutorial {
         done: (e) => e.player.state === 'BLOCK' },
       { id: 'heavy', text: 'TAP HEAVY FOR A POWER SMASH',
         done: (e) => (e.player.currentMove?.name || '').includes('Splitter') },
-      { id: 'player', text: 'TAP TWICE FAST:  → →  OR  ← ←  TO DASH',
+      { id: 'joystick', chevrons: true, text: 'TAP LEFT / RIGHT SIDE TWICE FAST  (OR FLICK STICK 2×)',
         done: (e) => e.player.state === 'DASH' },
       { id: 'ranged', text: 'TAP RANGED TO THROW A KUNAI',
         done: (e) => (e.player.currentMove?.name || '').includes('Kunai') },
@@ -131,9 +131,9 @@ export class Tutorial {
     ctx.closePath();
     ctx.fill();
 
-    // Dash step: animated double chevrons streaming both directions so the
-    // "tap twice" idea reads without words
-    if (step.id === 'player') {
+    // Dash step: animated double chevrons streaming both directions around
+    // the stick so the "tap twice" idea reads without words
+    if (step.chevrons) {
       const flow = (this.time * 90) % 46;
       ctx.strokeStyle = 'rgba(103, 232, 249, 0.95)';
       ctx.lineWidth = 6;

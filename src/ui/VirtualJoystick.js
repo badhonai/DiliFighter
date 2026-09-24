@@ -4,6 +4,7 @@ export class VirtualJoystick {
     this.canvas = canvas;
     this.active = false;
     this.pointerId = null;
+    this.tapTrack = null;
 
     this.layout();
     this.baseX = this.idleX;
@@ -79,6 +80,8 @@ export class VirtualJoystick {
         this.baseY = y;
         this.thumbX = x;
         this.thumbY = y;
+        // Track a possible quick TAP (double-tap = dash, no drag needed)
+        this.tapTrack = { id, x, y, t: performance.now() };
       }
     };
 
@@ -104,13 +107,28 @@ export class VirtualJoystick {
       this.inputManager.setVirtualAxis(normalizedX, normalizedY);
     };
 
-    const handleEnd = (id) => {
+    const handleEnd = (id, endX, endY) => {
       if (this.pointerId === id) {
         this.active = false;
         this.pointerId = null;
         this.thumbX = this.baseX = this.idleX;
         this.thumbY = this.baseY = this.idleY;
         this.inputManager.setVirtualAxis(0, 0);
+
+        // Quick TAP (not a drag/flick): taps left or right of the stick count
+        // as direction taps — two fast taps on a side = dash that way, so a
+        // dash never requires dragging the stick.
+        const tt = this.tapTrack;
+        this.tapTrack = null;
+        if (tt && tt.id === id && endX != null) {
+          const dt = performance.now() - tt.t;
+          const moved = Math.hypot(endX - tt.x, endY - tt.y);
+          if (dt < 260 && moved < 22) {
+            const side = tt.x - this.idleX;
+            if (side > 24) this.inputManager.noteDirectionTap(1);
+            else if (side < -24) this.inputManager.noteDirectionTap(-1);
+          }
+        }
       }
     };
 
@@ -142,7 +160,8 @@ export class VirtualJoystick {
 
     window.addEventListener('touchend', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
-        handleEnd(e.changedTouches[i].identifier);
+        const t = e.changedTouches[i];
+        handleEnd(t.identifier, t.clientX, t.clientY);
       }
     });
 

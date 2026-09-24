@@ -85,6 +85,17 @@ export class HUD {
     // 4. Desktop keyboard legend
     if (this.showKeyHints) this.renderKeyHints(ctx);
 
+    // Tiny build tag (bottom-left) — proves which build a device is running
+    if (typeof __BUILD_ID__ !== 'undefined') {
+      ctx.save();
+      ctx.font = '600 12px "Rajdhani", system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
+      ctx.fillText('build ' + __BUILD_ID__, 10, 712);
+      ctx.restore();
+    }
+
     // 5. Heavy-hit screen flash (above everything else)
     if (this.flashAlpha > 0.003) {
       ctx.fillStyle = `rgba(255, 255, 255, ${this.flashAlpha.toFixed(3)})`;
