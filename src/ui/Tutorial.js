@@ -24,7 +24,7 @@ export class Tutorial {
         done: (e) => e.player.state === 'BLOCK' },
       { id: 'heavy', text: 'TAP HEAVY FOR A POWER SMASH',
         done: (e) => (e.player.currentMove?.name || '').includes('Splitter') },
-      { id: 'joystick', chevrons: true, text: 'TAP LEFT / RIGHT SIDE TWICE FAST  (OR FLICK STICK 2×)',
+      { id: 'joystick', chevrons: true, text: 'DRAG LEFT / RIGHT 2× FAST TO DASH  (OR TAP A SIDE 2×)',
         done: (e) => e.player.state === 'DASH' },
       { id: 'ranged', text: 'TAP RANGED TO THROW A KUNAI',
         done: (e) => (e.player.currentMove?.name || '').includes('Kunai') },

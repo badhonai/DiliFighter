@@ -518,21 +518,35 @@ export class FighterRenderer {
       ctx.closePath();
       ctx.fill();
 
-      // Diamond eyes (white diamond + black pupil diamond)
+      // Diamond eyes — white rotated square with the black chevron on its
+      // RIGHT side, both eyes identical (matches the mascot reference art)
       const eye = (ex) => {
         ctx.save();
         ctx.translate(ex, -2);
+        // White square (rotated 45°)
+        ctx.save();
         ctx.rotate(Math.PI / 4);
         if (isShadow) {
           ctx.fillStyle = '#00f0ff';
           ctx.shadowColor = '#00f0ff';
           ctx.shadowBlur = 8;
-          ctx.fillRect(-2.6, -2.6, 5.2, 5.2);
         } else {
           ctx.fillStyle = '#f8fafc';
-          ctx.fillRect(-2.7, -2.7, 5.4, 5.4);
+        }
+        ctx.fillRect(-2.7, -2.7, 5.4, 5.4);
+        ctx.restore();
+        // Black left-pointing chevron sitting on the RIGHT of the white square
+        if (!isShadow) {
           ctx.fillStyle = '#0b1220';
-          ctx.fillRect(-1.5, -1.5, 3, 3);
+          ctx.beginPath();
+          ctx.moveTo(0.1, 0);        // left tip
+          ctx.lineTo(3.3, -3.2);     // top-right
+          ctx.lineTo(3.3, -1.3);
+          ctx.lineTo(1.5, 0);        // inner notch
+          ctx.lineTo(3.3, 1.3);
+          ctx.lineTo(3.3, 3.2);      // bottom-right
+          ctx.closePath();
+          ctx.fill();
         }
         ctx.restore();
       };

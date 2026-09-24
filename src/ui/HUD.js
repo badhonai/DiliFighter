@@ -66,7 +66,7 @@ export class HUD {
     if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - 3.6 * dt);
   }
 
-  render(ctx, p1, p2, matchTimer, roundNum) {
+  render(ctx, p1, p2, matchTimer, roundNum, projectiles) {
     const w = GAME_CONFIG.WORLD_WIDTH;
 
     ctx.save();
@@ -85,14 +85,18 @@ export class HUD {
     // 4. Desktop keyboard legend
     if (this.showKeyHints) this.renderKeyHints(ctx);
 
-    // Tiny build tag (bottom-left) — proves which build a device is running
+    // Tiny build tag (bottom-left) — proves which build a device is running.
+    // While a kunai is airborne it also shows a live counter, so if the blade
+    // is ever invisible on a device we can tell spawn-vs-render apart at a glance.
     if (typeof __BUILD_ID__ !== 'undefined') {
+      let n = 0;
+      if (projectiles) for (const p of projectiles) if (p.active) n++;
       ctx.save();
       ctx.font = '600 12px "Rajdhani", system-ui, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
       ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
-      ctx.fillText('build ' + __BUILD_ID__, 10, 712);
+      ctx.fillText('build ' + __BUILD_ID__ + (n ? '  ·  kunai ' + n : ''), 10, 712);
       ctx.restore();
     }
 

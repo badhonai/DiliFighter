@@ -43,8 +43,8 @@ export class Projectile {
       particleSystem.particles.push({
         x: this.x - this.direction * 12, y: this.y,
         vx: -this.direction * 60, vy: 0,
-        size: 3.4, color: 'rgba(186, 240, 255, 0.9)',
-        alpha: 0.9, life: 0.22, maxLife: 0.22, type: 'spark',
+        size: 5, color: 'rgba(220, 250, 255, 1)',
+        alpha: 1, life: 0.3, maxLife: 0.3, type: 'spark',
       });
     }
 
@@ -78,19 +78,19 @@ export class Projectile {
     } else {
       // Steel Kunai / Throwing Dagger — big, bright and halo-lit so it never
       // disappears against busy stage art (halo uses gradients: phone-safe)
-      const halo = ctx.createRadialGradient(0, 0, 2, 0, 0, 42);
-      halo.addColorStop(0, 'rgba(186, 240, 255, 0.75)');
-      halo.addColorStop(0.5, 'rgba(103, 232, 249, 0.35)');
+      const halo = ctx.createRadialGradient(0, 0, 2, 0, 0, 46);
+      halo.addColorStop(0, 'rgba(200, 245, 255, 0.85)');
+      halo.addColorStop(0.5, 'rgba(103, 232, 249, 0.4)');
       halo.addColorStop(1, 'rgba(103, 232, 249, 0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(0, 0, 42, 0, Math.PI * 2);
+      ctx.arc(0, 0, 46, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.scale(2.2, 2.2);
+      ctx.scale(2.6, 2.6);
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = '#22d3ee';
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 2;
 
       ctx.beginPath();
       ctx.moveTo(14, 0);

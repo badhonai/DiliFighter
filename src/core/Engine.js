@@ -495,7 +495,7 @@ export class Engine {
     this.camera.restoreTransform(ctx);
 
     // 5. Fixed HUD & UI Elements (canvas is currently in world-space transform)
-    this.hud.render(ctx, this.player, this.opponent, this.matchTimer, this.roundNumber);
+    this.hud.render(ctx, this.player, this.opponent, this.matchTimer, this.roundNumber, this.projectiles);
 
     // Character-select splash on top of everything during the round intro
     if (this.matchState === 'INTRO') {
