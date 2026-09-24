@@ -105,7 +105,7 @@ export class Tsunami extends Fighter {
           this.startAttack(MOVES.HEAVY_SMASH);
         } else if (choice < 0.8) {
           // Advance forward
-          this.vx = toPlayerDir * 190;
+          this.vx = toPlayerDir * 225;
           this.state = 'WALK_FORWARD';
         } else if (this.rangedCooldown <= 0 && Math.random() < 0.5) {
           this.startAttack(MOVES.RANGED_THROW);
@@ -117,7 +117,7 @@ export class Tsunami extends Fighter {
         const roll = Math.random();
         if (roll < 0.6) {
           // Close the gap
-          this.vx = toPlayerDir * 230;
+          this.vx = toPlayerDir * 270;
           this.state = 'WALK_FORWARD';
         } else if (roll < 0.6 + 0.18 * D.dashIn && dist < 600) {
           // Dash-in to pressure

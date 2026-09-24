@@ -137,9 +137,16 @@ export class Dili extends Fighter {
     }
     if (this.state === 'DASH') return; // hold the burst velocity
 
+    // Air drift: steer a little mid-jump so jumps feel controllable
+    if (this.state === 'JUMP' && this.y < 575) {
+      const airTarget = isMovingRight ? 210 : isMovingLeft ? -210 : this.vx;
+      this.vx += (airTarget - this.vx) * 0.06;
+      return;
+    }
+
     // Jump
     if (isJumping && this.y >= 575) {
-      this.vy = -560;
+      this.vy = -600;
       this.state = 'JUMP';
       soundEngine.playJump();
       return;
@@ -165,13 +172,17 @@ export class Dili extends Fighter {
     }
 
     // Walk Left / Right — accelerate smoothly toward the target speed
-    // instead of snapping 0<->walkSpeed in one frame (fixes jerky movement)
-    const walkSpeed = this.shadowSystem.isActive ? 280 : 220;
-    const targetSpeed = isMovingRight ? walkSpeed : isMovingLeft ? -walkSpeed : 0;
-    const blend = 1 - Math.exp(-18 * GAME_CONFIG.FIXED_TIMESTEP); // ~55ms ramp
+    // instead of snapping 0<->walkSpeed in one frame (fixes jerky movement).
+    // Analog stick: tilt further = walk faster; a gentle nudge = a calm step.
+    const walkSpeed = this.shadowSystem.isActive ? 330 : 265;
+    const axisX = input.getVirtualAxis ? input.getVirtualAxis().x : 0;
+    const mag = Math.abs(axisX) > 0.05 ? Math.min(1, Math.abs(axisX)) : 1;
+    const ease = 0.5 + 0.5 * mag;
+    const targetSpeed = (isMovingRight ? walkSpeed : isMovingLeft ? -walkSpeed : 0) * ease;
+    const blend = 1 - Math.exp(-26 * GAME_CONFIG.FIXED_TIMESTEP); // ~38ms ramp
     this.moveSpeed += (targetSpeed - this.moveSpeed) * blend;
     // Snap to a full stop so the fighter doesn't micro-crawl forever
-    if (targetSpeed === 0 && Math.abs(this.moveSpeed) < 14) this.moveSpeed = 0;
+    if (targetSpeed === 0 && Math.abs(this.moveSpeed) < 24) this.moveSpeed = 0;
     this.vx = this.moveSpeed;
     if (this.moveSpeed > 8) {
       this.state = this.direction === 1 ? 'WALK_FORWARD' : 'WALK_BACK';

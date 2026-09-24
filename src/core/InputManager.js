@@ -139,8 +139,14 @@ export class InputManager {
     return this.virtualJustPressed.has(actionName.toLowerCase());
   }
 
+  getVirtualAxis() {
+    return { x: this.virtualX || 0, y: this.virtualY || 0 };
+  }
+
   setVirtualAxis(x, y) {
-    const ENTER = 0.35, EXIT = 0.2;
+    this.virtualX = x;
+    this.virtualY = y;
+    const ENTER = 0.28, EXIT = 0.15;   // lighter stick = easier movement
     const ENTER_Y = 0.45, EXIT_Y = 0.28;
     const s = this.axisState;
 

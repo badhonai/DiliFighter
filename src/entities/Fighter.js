@@ -122,9 +122,9 @@ export class Fighter {
     if (this.y < GAME_CONFIG.PHYSICS.GROUND_Y - 5) return false;
     this.state = 'DASH';
     this.dashDir = dir;
-    this.dashTimer = 0.16;
+    this.dashTimer = 0.2;
     this.dashFxDone = false;
-    this.vx = dir * 1050;
+    this.vx = dir * 1150;
     this.moveSpeed = 0;
     return true;
   }
