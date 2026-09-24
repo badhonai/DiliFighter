@@ -20,6 +20,7 @@ export class ImageStage {
   constructor() {
     this.arenaIndex = Math.floor(Math.random() * ARENAS.length);
     this.images = [];
+    this.blur = [];
     this.ambientTime = 0;
     this.shadowTransition = 0; // 0 = full normal, 1 = full shadow realm
 
@@ -27,7 +28,20 @@ export class ImageStage {
     ARENAS.forEach((a, i) => {
       const img = new Image();
       img.src = `${import.meta.env.BASE_URL}${a.src}`;
-      img.onload = () => { this.images[i] = img; };
+      img.onload = () => {
+        this.images[i] = img;
+        // Tiny offscreen copy — upscaling it later yields a free soft blur for
+        // the full-bleed backdrop, so every screen edge shows arena art.
+        try {
+          const t = document.createElement('canvas');
+          if (t.getContext) {
+            t.width = 96;
+            t.height = 54;
+            t.getContext('2d').drawImage(img, 0, 0, 96, 54);
+            this.blur[i] = t;
+          }
+        } catch (e) { /* headless envs: backdrop falls back to sharp art */ }
+      };
     });
 
     // Rain streaks (Neon Alley)
@@ -125,17 +139,25 @@ export class ImageStage {
     const img = this.images[this.arenaIndex];
 
     // Full-bleed backdrop: paint EVERY device pixel (including letterbox
-    // bands on tall/wide screens) with the arena art, dimmed — so the play
-    // frame always blends into scenery instead of black bars.
+    // bands on tall/wide screens) with a softly blurred, brightened copy of
+    // the arena art — the play frame melts into scenery; no black, ever.
     const cc = ctx.canvas;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (img && img.naturalWidth) {
+    const soft = this.blur[this.arenaIndex];
+    if (soft) {
+      const sc = Math.max(cc.width / soft.width, cc.height / soft.height);
+      const dw = soft.width * sc, dh = soft.height * sc;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(soft, (cc.width - dw) / 2, (cc.height - dh) / 2, dw, dh);
+      ctx.fillStyle = 'rgba(5, 7, 10, 0.25)';
+      ctx.fillRect(0, 0, cc.width, cc.height);
+    } else if (img && img.naturalWidth) {
       const iw = img.naturalWidth, ih = img.naturalHeight;
       const sc = Math.max(cc.width / iw, cc.height / ih);
       const dw = iw * sc, dh = ih * sc;
       ctx.drawImage(img, (cc.width - dw) / 2, (cc.height - dh) / 2, dw, dh);
-      ctx.fillStyle = 'rgba(5, 7, 10, 0.5)';
+      ctx.fillStyle = 'rgba(5, 7, 10, 0.25)';
       ctx.fillRect(0, 0, cc.width, cc.height);
     }
     ctx.restore();
