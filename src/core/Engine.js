@@ -14,6 +14,8 @@ import { MatchAnnouncer } from '../ui/MatchAnnouncer.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { MusicToggle } from '../ui/MusicToggle.js';
 import { VSSplash } from '../ui/VSSplash.js';
+import { Difficulty } from './Difficulty.js';
+import { Tutorial } from '../ui/Tutorial.js';
 
 export class Engine {
   constructor(canvas) {
@@ -54,6 +56,7 @@ export class Engine {
     this.pauseMenu = new PauseMenu(this);
     this.musicToggle = new MusicToggle(this.soundEngine);
     this.vsSplash = new VSSplash();
+    this.tutorial = new Tutorial(this);
 
     // Entities
     this.player = new Dili(350, GAME_CONFIG.PHYSICS.GROUND_Y);
@@ -85,6 +88,7 @@ export class Engine {
     this.setupResize();
     this.setupAutoPause();
     this.startRound();
+    this.tutorial.maybeStart(); // first-play guided walkthrough
   }
 
   setupResize() {
@@ -203,13 +207,14 @@ export class Engine {
         );
       }
     } else if (this.matchState === 'FIGHTING') {
-      // Latch the first sign of life from the player
-      if (!this.playerHasActed && this.inputManager.hasAnyActivity()) {
+      // Latch the first sign of life from the player (tutorial keeps the
+      // world calm: no latch, no ticking clock while the guide runs)
+      if (!this.playerHasActed && !this.tutorial.active && this.inputManager.hasAnyActivity()) {
         this.playerHasActed = true;
       }
 
       // Round timer only runs once the player has engaged
-      if (this.playerHasActed) {
+      if (this.playerHasActed && !this.tutorial.active) {
         this.matchTimer = Math.max(0, this.matchTimer - actorDt);
 
         // Timeout check
@@ -228,7 +233,8 @@ export class Engine {
     if (this.matchState === 'FIGHTING') {
       this.player.handleInput(this.inputManager, this.soundEngine);
       // Tsunami stays calm and idle until the player makes the first move
-      if (this.playerHasActed) {
+      // (and never acts during the tutorial — the guide is a safe sandbox)
+      if (this.playerHasActed && !this.tutorial.active) {
         this.opponent.updateAI(actorDt, this.player, this.soundEngine);
       }
     }
@@ -238,6 +244,9 @@ export class Engine {
       this.announcer.showShadowBanner();
       this.camera.shake(12, 0.4);
     }
+
+    // First-play guide progression (action-completed checks)
+    this.tutorial.update();
 
     // Update Fighters
     this.player.update(actorDt, this.opponent, this.soundEngine, this.particleSystem, this.projectiles);
@@ -279,6 +288,7 @@ export class Engine {
       const oppHurtboxes = this.opponent.getHurtboxes();
       for (const hb of oppHurtboxes) {
         if (p1Hitbox.intersects(hb)) {
+          p1Hitbox.properties.damage = Math.round(p1Hitbox.properties.damage * Difficulty.preset.playerDamage);
           this.player.hasHitOpponent = true;
           this.player.comboCount++;
           this.hud.showCombo(1, this.player.comboCount);
@@ -301,6 +311,7 @@ export class Engine {
       const playerHurtboxes = this.player.getHurtboxes();
       for (const hb of playerHurtboxes) {
         if (p2Hitbox.intersects(hb)) {
+          p2Hitbox.properties.damage = Math.round(p2Hitbox.properties.damage * Difficulty.preset.aiDamage);
           this.opponent.hasHitOpponent = true;
           this.opponent.comboCount++;
           this.hud.showCombo(2, this.opponent.comboCount);
@@ -329,6 +340,8 @@ export class Engine {
       if (!proj.active) continue;
       const target = proj.owner === this.player ? this.opponent : this.player;
       const projHitbox = proj.getHitbox();
+      projHitbox.properties.damage = Math.round(projHitbox.properties.damage *
+        (proj.owner === this.player ? Difficulty.preset.playerDamage : Difficulty.preset.aiDamage));
 
       for (const hb of target.getHurtboxes()) {
         if (projHitbox.intersects(hb)) {
@@ -488,6 +501,9 @@ export class Engine {
     if (this.matchState === 'INTRO') {
       this.vsSplash.render(ctx, this.vsSplash.len - Math.max(0, this.stateTimer));
     }
+
+    // Guided first-play highlights above the HUD
+    this.tutorial.render(ctx);
 
     this.joystick.render(ctx);
     this.touchButtons.render(ctx, this.player);

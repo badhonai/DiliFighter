@@ -461,6 +461,24 @@ html, body {
   display: block;
 }
 
+/* Tutorial skip pill */
+#skip-tutorial-btn {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 140;
+  padding: 10px 24px;
+  font: 700 15px 'Rajdhani', sans-serif;
+  letter-spacing: 1.5px;
+  color: #06202a;
+  background: #67e8f9;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.5);
+}
+
 /* Pause/play — fourth icon in the top-left column */
 #pause-toggle-btn {
   position: fixed;

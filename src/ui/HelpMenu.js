@@ -20,6 +20,9 @@ export class HelpMenu {
     let seen = false;
     try { seen = localStorage.getItem(KEY) === '1'; } catch (e) { /* private mode */ }
     if (seen) return;
+    // The interactive tutorial IS the first-time experience — don't stack
+    // the text guide on top of it.
+    if (this.engine && this.engine.tutorial && this.engine.tutorial.active) return;
 
     this.isFirstVisit = true;
     this.markSeen = () => {

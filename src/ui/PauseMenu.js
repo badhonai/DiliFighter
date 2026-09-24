@@ -1,3 +1,5 @@
+import { Difficulty } from '../core/Difficulty.js';
+
 export class PauseMenu {
   constructor(engine) {
     this.engine = engine;
@@ -53,6 +55,15 @@ export class PauseMenu {
           <button id="btn-sound" class="btn-action btn-secondary">AUDIO: ON</button>
           <button id="btn-restart" class="btn-action btn-secondary">RESTART MATCH</button>
         </div>
+
+        <div style="margin-top: 22px;">
+          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Difficulty</h4>
+          <div style="display: flex; justify-content: center; gap: 10px;">
+            <button id="diff-easy" class="btn-action btn-secondary">EASY</button>
+            <button id="diff-medium" class="btn-action btn-secondary">MEDIUM</button>
+            <button id="diff-hard" class="btn-action btn-secondary">HARD</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -75,6 +86,25 @@ export class PauseMenu {
       this.togglePause(false);
       this.engine.restartMatch();
     });
+
+    // Difficulty segmented control
+    const refreshDiff = () => {
+      for (const name of Difficulty.all()) {
+        const el = document.getElementById('diff-' + name);
+        const active = Difficulty.current === name;
+        el.style.borderColor = active ? '#22d3ee' : '';
+        el.style.color = active ? '#22d3ee' : '';
+        el.style.boxShadow = active ? '0 0 14px rgba(34, 211, 238, 0.45)' : '';
+      }
+    };
+    for (const name of Difficulty.all()) {
+      document.getElementById('diff-' + name).addEventListener('click', () => {
+        Difficulty.set(name);
+        this.engine.soundEngine.playUIClick();
+        refreshDiff();
+      });
+    }
+    refreshDiff();
   }
 
   togglePause(forceState = null) {

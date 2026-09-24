@@ -47,15 +47,16 @@ export class TouchButtons {
     const right = 1280 + marginX;
     const bottom = 720 + marginY;
 
-    // 2x3 cluster under the right thumb: core buttons at the bottom,
-    // defense/power in the middle row, utility up top.
+    // Ergonomic fan under the right thumb: core attacks on a natural arc,
+    // defense/power a row up, utilities on top — deliberately NOT a rigid
+    // grid, sizes tuned to importance so the thumb finds them by feel.
     const pos = {
-      punch:  { x: right - 78,  y: bottom - 88,  radius: 52 },
-      kick:   { x: right - 198, y: bottom - 88,  radius: 50 },
-      block:  { x: right - 78,  y: bottom - 204, radius: 48 },
-      heavy:  { x: right - 198, y: bottom - 204, radius: 48 },
-      ranged: { x: right - 78,  y: bottom - 316, radius: 44 },
-      shadow: { x: right - 198, y: bottom - 316, radius: 48 },
+      punch:  { x: right - 88,  y: bottom - 100, radius: 60 },
+      kick:   { x: right - 215, y: bottom - 125, radius: 55 },
+      block:  { x: right - 100, y: bottom - 238, radius: 53 },
+      heavy:  { x: right - 228, y: bottom - 252, radius: 53 },
+      ranged: { x: right - 158, y: bottom - 368, radius: 48 },
+      shadow: { x: right - 308, y: bottom - 352, radius: 52 },
     };
     for (const btn of this.buttons) {
       btn.x = pos[btn.id].x;
@@ -184,6 +185,27 @@ export class TouchButtons {
 
       const isShadowBtn = btn.id === 'shadow';
       const pressed = btn.pressed;
+
+      // Shadow-ready beacon: pulsing halo + expanding ring. Pure gradients &
+      // strokes (no shadowBlur) so it glows hard even on low-FX phones.
+      if (isShadowBtn && (isShadowReady || isShadowActive)) {
+        const now = performance.now();
+        const pulse = 0.5 + 0.5 * Math.sin(now / 170);
+        const halo = ctx.createRadialGradient(0, 0, btn.radius * 0.5, 0, 0, btn.radius * 2.2);
+        halo.addColorStop(0, `rgba(0, 240, 255, ${(0.30 + 0.25 * pulse).toFixed(3)})`);
+        halo.addColorStop(1, 'rgba(0, 240, 255, 0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(0, 0, btn.radius * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        const rp = (now / 900) % 1;
+        ctx.strokeStyle = `rgba(0, 240, 255, ${((1 - rp) * 0.75).toFixed(3)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, btn.radius * (1 + rp * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       // Outer ring
       if (isShadowBtn) {

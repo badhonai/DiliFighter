@@ -27,9 +27,9 @@ export class VirtualJoystick {
 
     this.leftEdge = -marginX;
     this.bottomEdge = 720 + marginY;
-    this.idleX = this.leftEdge + 168;
-    this.idleY = this.bottomEdge - 158;
-    this.radius = 78;
+    this.idleX = this.leftEdge + 182;
+    this.idleY = this.bottomEdge - 172;
+    this.radius = 94;
 
     if (!this.active) {
       this.baseX = this.idleX;
@@ -205,7 +205,7 @@ export class VirtualJoystick {
     ctx.shadowColor = '#00f0ff';
     ctx.shadowBlur = this.active ? 15 : 5;
     ctx.beginPath();
-    ctx.arc(this.thumbX, this.thumbY, 26, 0, Math.PI * 2);
+    ctx.arc(this.thumbX, this.thumbY, 31, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
