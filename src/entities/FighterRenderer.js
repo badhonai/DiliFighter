@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../config.js';
+import { spriteEntry } from './SpriteStore.js';
 
 export class FighterRenderer {
   constructor(fighter) {
@@ -63,6 +64,10 @@ export class FighterRenderer {
   }
 
   renderFighterBody(ctx, f, isShadow) {
+    // Sprite-sheet trial: AI frames replace the vector body when loaded.
+    // Shadow form keeps the vector silhouette (it gets tinted/aura'd).
+    if (!isShadow && GAME_CONFIG.SPRITES && this.tryRenderSprite(ctx, f)) return;
+
     // Determine pose parameters based on state and current animation progress
     const pose = this.calculatePose(f);
 
@@ -123,6 +128,70 @@ export class FighterRenderer {
     this.renderArm(ctx, pose.frontArm, primaryColor, secondaryColor, skinColor, weaponColor, isShadow, f, false);
 
     ctx.restore();
+  }
+
+  // ------------------------------------------------ sprite-sheet trial
+
+  poseForSprite(f) {
+    switch (f.state) {
+      case 'WALK_FORWARD':
+      case 'WALK_BACK':
+      case 'DASH': return 'walk';
+      case 'ATTACKING': return f.attackPhase === 'active' ? 'strike' : 'windup';
+      case 'BLOCK':
+      case 'CROUCH': return 'block';
+      case 'HIT_STUN':
+      case 'KNOCKDOWN':
+      case 'DEAD': return 'hit';
+      default: return 'idle';
+    }
+  }
+
+  /** Draw the AI sprite frame for the current state. False = vector fallback. */
+  tryRenderSprite(ctx, f) {
+    const entry = spriteEntry(f.charId);
+    if (!entry || !entry.ready) return false;
+    const sp = entry.poses.get(this.poseForSprite(f)) || entry.poses.get('idle');
+    if (!sp) return false;
+
+    const H = GAME_CONFIG.SPRITE_HEIGHT;
+    const w = sp.w * (H / sp.h);
+    const t = f.animTime || 0;
+    const phase = f.isPlayer ? 0 : 2.1; // desync the two fighters
+
+    let bob = 0, lean = 0, rot = 0, sy = 1;
+    switch (f.state) {
+      case 'WALK_FORWARD':
+      case 'WALK_BACK':
+        bob = -Math.abs(Math.sin(t * 9 + phase)) * 4; break;
+      case 'DASH':
+        lean = 0.16; bob = -2; break;
+      case 'ATTACKING':
+        lean = f.attackPhase === 'active' ? 0.10
+          : f.attackPhase === 'startup' ? -0.10 : 0.04;
+        break;
+      case 'HIT_STUN':
+        lean = -0.24; bob = 2; break;
+      case 'BLOCK':
+        bob = 1.5; break;
+      case 'CROUCH':
+        sy = 0.82; break;
+      case 'JUMP':
+        bob = -2; break;
+      case 'KNOCKDOWN':
+      case 'DEAD':
+        rot = -1.45; bob = 8; break;
+      default:
+        bob = Math.sin(t * 3.6 + phase) * 2.2;
+    }
+
+    ctx.save();
+    ctx.translate(0, bob);
+    ctx.rotate(rot + lean);
+    ctx.scale(1, sy);
+    ctx.drawImage(sp.canvas, -w / 2, -H, w, H);
+    ctx.restore();
+    return true;
   }
 
   calculatePose(f) {

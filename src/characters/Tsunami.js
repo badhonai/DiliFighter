@@ -15,6 +15,7 @@ export class Tsunami extends Fighter {
       y,
       direction: opts.direction !== undefined ? opts.direction : -1,
     });
+    this.charId = 'tsunami';
 
     // Character stats — the powerhouse
     this.walkSpeed = 250;

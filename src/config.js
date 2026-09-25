@@ -25,6 +25,11 @@ export const GAME_CONFIG = {
   // kunai "collided" on their first frame and vanished before rendering).
   FIGHTER_SCALE: 1.22,
 
+  // Sprite-sheet trial: AI-generated pose frames (public/sprites/<char>/).
+  // false = pure vector fighters. Missing frames fall back per-pose.
+  SPRITES: true,
+  SPRITE_HEIGHT: 140,
+
   MATCH: {
     ROUND_TIME: 60,
     ROUNDS_TO_WIN: 2,

@@ -6,6 +6,7 @@ import { SoundEngine } from '../audio/SoundEngine.js';
 import { ParticleSystem } from '../entities/ParticleSystem.js';
 import { Dili } from '../characters/Dili.js';
 import { Tsunami } from '../characters/Tsunami.js';
+import { loadCharacterSprites } from '../entities/SpriteStore.js';
 import { ImageStage } from '../stages/ImageStage.js';
 import { HUD } from '../ui/HUD.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
@@ -118,6 +119,10 @@ export class Engine {
       this.opponent = new Tsunami(930, GY, { isPlayer: false, direction: -1 });
     }
     this.playerCharacter = playerCharId;
+    // Sprite-sheet trial: pull pose frames for both duelists (no-op until
+    // loaded; the renderer falls back to vector meanwhile).
+    loadCharacterSprites(this.player.charId, import.meta.env.BASE_URL);
+    loadCharacterSprites(this.opponent.charId, import.meta.env.BASE_URL);
     // HUD trailing-health bars track whatever fighters are live now
     this.hud.reset();
   }
