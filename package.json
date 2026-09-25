@@ -30,5 +30,8 @@
   "homepage": "https://github.com/badhonai/DiliFighter#readme",
   "devDependencies": {
     "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0"
   }
 }

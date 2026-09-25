@@ -11,11 +11,13 @@
  */
 export class HomeScreen {
   /**
-   * @param {{onPlay: () => void, onHelp: () => void, version?: string}} opts
+   * @param {{onPlay: () => void, onHelp: () => void, onLobby?: () => void,
+   *          version?: string}} opts
    */
-  constructor({ onPlay, onHelp, version = '' }) {
+  constructor({ onPlay, onHelp, onLobby = null, version = '' }) {
     this.onPlay = onPlay;
     this.onHelp = onHelp;
+    this.onLobby = onLobby;
     this.started = false;
 
     this.isMobile = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
@@ -37,10 +39,15 @@ export class HomeScreen {
         <h1 class="home-logo">DILI<span>FIGHTER</span></h1>
         <p class="home-tagline">Fast-paced martial arts combat</p>
 
-        <button id="play-now-btn" class="btn-action btn-hero" type="button">
-          <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-          PLAY NOW
-        </button>
+        <div class="home-actions">
+          <button id="play-now-btn" class="btn-action btn-hero" type="button">
+            <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            PLAY NOW
+          </button>
+          <button id="home-lobby-btn" class="btn-action btn-hero-ghost" type="button">
+            LOBBY
+          </button>
+        </div>
 
         <button id="home-help-btn" class="home-link" type="button">HOW TO PLAY</button>
 
@@ -61,8 +68,10 @@ export class HomeScreen {
   }
 
   bindEvents() {
-    this.el.querySelector('#play-now-btn').addEventListener('click', () => this.play());
+    this.el.querySelector('#play-now-btn').addEventListener('click', () => this.leave('play'));
     this.el.querySelector('#home-help-btn').addEventListener('click', () => this.onHelp());
+    const lobbyBtn = this.el.querySelector('#home-lobby-btn');
+    if (lobbyBtn) lobbyBtn.addEventListener('click', () => this.leave('lobby'));
 
     // Fallback path: once the player physically rotates into landscape we
     // continue automatically — no second tap needed.
@@ -77,9 +86,10 @@ export class HomeScreen {
     window.addEventListener('orientationchange', recheck);
   }
 
-  /** User gesture handler: go immersive, then hand off to difficulty select. */
-  async play() {
+  /** User gesture handler: go immersive, then hand off to the destination. */
+  async leave(dest) {
     if (this.started) return;
+    this.dest = dest;
 
     await this.enterImmersive();
 
@@ -96,8 +106,18 @@ export class HomeScreen {
     if (this.started) return;
     this.started = true;
     this.el.classList.add('leaving');
-    setTimeout(() => this.el.remove(), 420);
-    this.onPlay();
+    setTimeout(() => this.el.classList.add('hidden'), 420);
+    if (this.dest === 'lobby' && this.onLobby) this.onLobby();
+    else this.onPlay();
+  }
+
+  /** Re-show the title screen (e.g. after signing out). */
+  show() {
+    this.started = false;
+    this.pendingRotate = false;
+    this.dest = null;
+    this.rotateHint.classList.remove('active');
+    this.el.classList.remove('leaving', 'hidden');
   }
 
   /** Fullscreen + landscape lock. Every step is best-effort — the game must

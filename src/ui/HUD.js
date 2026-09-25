@@ -34,6 +34,14 @@ export class HUD {
     this.flashAlpha = Math.max(this.flashAlpha, strength);
   }
 
+  /** Back to a clean slate (used when returning to the lobby backdrop). */
+  reset() {
+    this.p1TrailingHealth = GAME_CONFIG.MATCH.MAX_HEALTH;
+    this.p2TrailingHealth = GAME_CONFIG.MATCH.MAX_HEALTH;
+    this.comboDisplay = { p1: { count: 0, timer: 0 }, p2: { count: 0, timer: 0 } };
+    this.flashAlpha = 0;
+  }
+
   showCombo(playerNum, count) {
     if (playerNum === 1) {
       this.comboDisplay.p1 = { count, timer: 1.5 };

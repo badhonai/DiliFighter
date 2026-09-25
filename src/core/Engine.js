@@ -14,6 +14,7 @@ import { MatchAnnouncer } from '../ui/MatchAnnouncer.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { VSSplash } from '../ui/VSSplash.js';
 import { Difficulty } from './Difficulty.js';
+import { GraphicsQuality } from './GraphicsQuality.js';
 import { Tutorial } from '../ui/Tutorial.js';
 
 export class Engine {
@@ -105,15 +106,47 @@ export class Engine {
   /**
    * Kick off a fresh match from the title/difficulty flow. Safe to call
    * again later (acts like a full restart with a new difficulty).
+   * @param {string|null} difficulty
+   * @param {{arenaIndex?:number, levelId?:number, tag?:string,
+   *          onMatchEnd?: (r:{playerWon:boolean, playerHealthPct:number,
+   *          levelId?:number, tag?:string}) => void}} [opts]
+   *   onMatchEnd replaces the default auto-restart so the lobby can show a
+   *   results screen instead.
    */
-  beginMatch(difficulty = null) {
+  beginMatch(difficulty = null, opts = {}) {
     if (difficulty) Difficulty.set(difficulty);
+    if (Number.isInteger(opts.arenaIndex)) this.stage.select(opts.arenaIndex);
+    else this.stage.unpin();
+    this.levelId = opts.levelId ?? null;
+    this.matchTag = opts.tag || 'quick';
+    this.matchEndHook = opts.onMatchEnd || null;
     if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
+    clearTimeout(this.matchEndTimer);
     this.roundNumber = 1;
     this.player.roundsWon = 0;
     this.opponent.roundsWon = 0;
     this.startRound();
     this.tutorial.maybeStart();
+  }
+
+  /**
+   * Park the engine back on the title/lobby backdrop: fighters reset to
+   * their idle poses, combat state cleared, no HUD.
+   */
+  toAttract() {
+    if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
+    clearTimeout(this.matchEndTimer);
+    this.matchState = 'HOME';
+    this.matchEndHook = null;
+    this.levelId = null;
+    this.projectiles = [];
+    this.particleSystem.clear();
+    this.player.reset(350, 1);
+    this.opponent.reset(930, -1);
+    this.playerHasActed = false;
+    this.hitstop = 0;
+    this.timeScale = 1.0;
+    this.hud.reset();
   }
 
   setupResize() {
@@ -138,8 +171,9 @@ export class Engine {
 
   resizeViewport() {
     // Native devicePixelRatio (3x on many phones) renders 9x the pixels of
-    // 1x for zero visible benefit in a stylized game — cap it hard.
-    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    // 1x for zero visible benefit in a stylized game — cap it hard. The
+    // player's Graphics Quality preset lowers the cap further at runtime.
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR, GraphicsQuality.dprCap());
     const width = window.innerWidth;
     const height = window.innerHeight;
 
@@ -500,9 +534,28 @@ export class Engine {
         );
         if (isPlayerWin) this.soundEngine.playVictory();
         else this.soundEngine.playDefeat();
-        setTimeout(() => {
-          this.restartMatch();
-        }, 4500);
+
+        if (this.matchEndHook) {
+          // Lobby flow: hand the outcome to the results screen. The hook is
+          // kept alive for the whole match session (pause -> restart still
+          // ends back on a results screen); only toAttract/beginMatch reset it.
+          const hook = this.matchEndHook;
+          clearTimeout(this.matchEndTimer);
+          this.matchEndTimer = setTimeout(() => {
+            hook({
+              playerWon: isPlayerWin,
+              playerHealthPct: Math.max(0, Math.round(
+                (this.player.health / GAME_CONFIG.MATCH.MAX_HEALTH) * 100)),
+              levelId: this.levelId ?? undefined,
+              tag: this.matchTag,
+            });
+          }, 1600);
+        } else {
+          clearTimeout(this.matchEndTimer);
+          this.matchEndTimer = setTimeout(() => {
+            this.restartMatch();
+          }, 4500);
+        }
         return;
       }
     }
