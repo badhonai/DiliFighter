@@ -66,6 +66,7 @@ export class Engine {
     // Entities
     this.player = new Dili(350, GAME_CONFIG.PHYSICS.GROUND_Y);
     this.opponent = new Tsunami(930, GAME_CONFIG.PHYSICS.GROUND_Y);
+    this.playerCharacter = 'dili';
     this.projectiles = [];
 
     // Match State
@@ -104,10 +105,29 @@ export class Engine {
   }
 
   /**
+   * Swap the fighter references for character select. The player picks a
+   * character; the opponent becomes the OTHER fighter (AI-controlled).
+   */
+  configureFighters(playerCharId = 'dili') {
+    const GY = GAME_CONFIG.PHYSICS.GROUND_Y;
+    if (playerCharId === 'tsunami') {
+      this.player = new Tsunami(350, GY, { isPlayer: true, direction: 1 });
+      this.opponent = new Dili(930, GY, { isPlayer: false, direction: -1 });
+    } else {
+      this.player = new Dili(350, GY, { isPlayer: true, direction: 1 });
+      this.opponent = new Tsunami(930, GY, { isPlayer: false, direction: -1 });
+    }
+    this.playerCharacter = playerCharId;
+    // HUD trailing-health bars track whatever fighters are live now
+    this.hud.reset();
+  }
+
+  /**
    * Kick off a fresh match from the title/difficulty flow. Safe to call
    * again later (acts like a full restart with a new difficulty).
    * @param {string|null} difficulty
    * @param {{arenaIndex?:number, levelId?:number, tag?:string,
+   *          playerCharacter?:string, aiMods?:object,
    *          onMatchEnd?: (r:{playerWon:boolean, playerHealthPct:number,
    *          levelId?:number, tag?:string}) => void}} [opts]
    *   onMatchEnd replaces the default auto-restart so the lobby can show a
@@ -115,10 +135,16 @@ export class Engine {
    */
   beginMatch(difficulty = null, opts = {}) {
     if (difficulty) Difficulty.set(difficulty);
+    if (opts.playerCharacter && opts.playerCharacter !== this.playerCharacter) {
+      this.configureFighters(opts.playerCharacter);
+    }
+    // Per-level opponent brain tuning (campaign). Cleared for quick match.
+    this.opponent.aiMods = opts.aiMods || null;
     if (Number.isInteger(opts.arenaIndex)) this.stage.select(opts.arenaIndex);
     else this.stage.unpin();
     this.levelId = opts.levelId ?? null;
     this.matchTag = opts.tag || 'quick';
+    this.matchOppName = opts.oppName || null;
     this.matchEndHook = opts.onMatchEnd || null;
     if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
     clearTimeout(this.matchEndTimer);
@@ -139,6 +165,8 @@ export class Engine {
     this.matchState = 'HOME';
     this.matchEndHook = null;
     this.levelId = null;
+    this.matchOppName = null;
+    if (this.opponent) this.opponent.aiMods = null;
     this.projectiles = [];
     this.particleSystem.clear();
     this.player.reset(350, 1);
@@ -221,7 +249,7 @@ export class Engine {
 
     this.announcer.announce(
       `ROUND ${this.roundNumber}`,
-      this.stage.arena.name,
+      this.matchOppName || this.stage.arena.name,
       2.0,
       '#f8fafc'
     );
@@ -385,7 +413,7 @@ export class Engine {
       const oppHurtboxes = this.opponent.getHurtboxes();
       for (const hb of oppHurtboxes) {
         if (p1Hitbox.intersects(hb)) {
-          p1Hitbox.properties.damage = Math.round(p1Hitbox.properties.damage * Difficulty.preset.playerDamage);
+          p1Hitbox.properties.damage = Math.round(p1Hitbox.properties.damage * Difficulty.preset.playerDamage * (this.player.damageMult || 1));
           this.player.hasHitOpponent = true;
           this.player.comboCount++;
           this.hud.showCombo(1, this.player.comboCount);
@@ -408,7 +436,7 @@ export class Engine {
       const playerHurtboxes = this.player.getHurtboxes();
       for (const hb of playerHurtboxes) {
         if (p2Hitbox.intersects(hb)) {
-          p2Hitbox.properties.damage = Math.round(p2Hitbox.properties.damage * Difficulty.preset.aiDamage);
+          p2Hitbox.properties.damage = Math.round(p2Hitbox.properties.damage * Difficulty.preset.aiDamage * (this.opponent.damageMult || 1));
           this.opponent.hasHitOpponent = true;
           this.opponent.comboCount++;
           this.hud.showCombo(2, this.opponent.comboCount);
@@ -438,7 +466,9 @@ export class Engine {
       const target = proj.owner === this.player ? this.opponent : this.player;
       const projHitbox = proj.getHitbox();
       projHitbox.properties.damage = Math.round(projHitbox.properties.damage *
-        (proj.owner === this.player ? Difficulty.preset.playerDamage : Difficulty.preset.aiDamage));
+        (proj.owner === this.player
+          ? Difficulty.preset.playerDamage * (this.player.damageMult || 1)
+          : Difficulty.preset.aiDamage * (this.opponent.damageMult || 1)));
 
       for (const hb of target.getHurtboxes()) {
         if (projHitbox.intersects(hb)) {

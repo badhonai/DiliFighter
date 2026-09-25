@@ -6,7 +6,7 @@
  * network. Writes go to both: instant locally, eventually to the cloud.
  */
 import { getSupabase } from './cloud.js';
-import { CAMPAIGN, LEVEL_ITEMS, starsForWin, coinsForStars, FIRST_CLEAR_BONUS, QUICK_MATCH_WIN_COINS } from '../data/campaign.js';
+import { CAMPAIGN, starsForWin, coinsForStars, FIRST_CLEAR_BONUS, QUICK_MATCH_WIN_COINS } from '../data/campaign.js';
 
 const CACHE_KEY = 'df_cloud_cache_v1';
 
@@ -102,7 +102,7 @@ export const DB = {
   },
 
   displayName() {
-    return this.data.profile.username || 'Player';
+    return this.data.profile.nickname || this.data.profile.username || 'Player';
   },
 
   // ---------------- profile ----------------
@@ -154,11 +154,6 @@ export const DB = {
       const firstClear = prevBest === 0;
       if (firstClear) {
         reward.coins = coinsForStars(stars) + FIRST_CLEAR_BONUS;
-        const item = LEVEL_ITEMS[r.levelId];
-        if (item && !this.data.items.some((it) => it.item_id === item.id)) {
-          this.data.items.push({ item_id: item.id, qty: 1 });
-          reward.newItem = item;
-        }
         if (r.levelId >= this.data.progress.highest_level && r.levelId < CAMPAIGN.length) {
           this.data.progress.highest_level = r.levelId + 1;
           reward.unlockedNext = true;
@@ -193,10 +188,6 @@ export const DB = {
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', this.userId)
-          : Promise.resolve(),
-        reward.newItem
-          ? sb.from('inventory_items')
-              .upsert({ user_id: this.userId, item_id: reward.newItem.id, qty: 1 }, { onConflict: 'user_id,item_id' })
           : Promise.resolve(),
       ]);
     } catch { /* offline — local cache keeps the truth */ }

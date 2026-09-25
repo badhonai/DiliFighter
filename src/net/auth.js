@@ -27,7 +27,7 @@ function friendlyAuthError(err) {
   if (msg.includes('at least 6 characters') || msg.includes('password'))
     return 'Password must be at least 6 characters.';
   if (msg.includes('email not confirmed'))
-    return 'Server is still asking for email confirmation — tell the devs!';
+    return 'Sign-in is disabled on the server (email confirmation is still ON). Tell @DlicomApp to flip it in Supabase.';
   if (msg.includes('rate limit'))
     return 'Too many attempts — wait a moment and retry.';
   if (msg.includes('fetch') || msg.includes('network'))
@@ -56,7 +56,7 @@ export const Auth = {
       });
       if (error) return { ok: false, error: friendlyAuthError(error) };
       if (!data.session)
-        return { ok: false, error: 'Server requires email confirmation — tell the devs!' };
+        return { ok: false, error: 'Account created, but the server still has "Confirm email" ON — the owner must turn it OFF in Supabase (Authentication → Email).' };
       return { ok: true, user: data.user };
     } catch (e) {
       return { ok: false, error: friendlyAuthError(e) };

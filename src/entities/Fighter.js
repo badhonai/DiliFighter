@@ -18,6 +18,17 @@ export class Fighter {
     this.moveSpeed = 0;
     this.direction = direction; // 1 = right, -1 = left
 
+    // Character stats (overridden per character; sane defaults here so AI
+    // fighters and any future roster entry work out of the box).
+    this.walkSpeed = 265;
+    this.shadowWalkSpeed = 330;
+    this.jumpPower = 600;
+    this.damageMult = 1.0;
+
+    // Shared control fields (used by PlayerControls / AiBrain)
+    this.inputBuffer = null;
+    this.defendCooldown = 0;
+
     // Stats
     this.health = GAME_CONFIG.MATCH.MAX_HEALTH;
     this.maxHealth = GAME_CONFIG.MATCH.MAX_HEALTH;

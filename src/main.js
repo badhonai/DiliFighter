@@ -93,13 +93,17 @@ function initGame() {
     onRematch: () => startMatch(lastMatch.diff, lastMatch.opts),
     onNext: () => {
       const next = CAMPAIGN.find((c) => c.id === (lastMatch.level ? lastMatch.level.id + 1 : 0));
-      if (next && DB.levelUnlocked(next.id)) startLevel(next);
+      if (next && DB.levelUnlocked(next.id)) startLevel(next, lastMatch.charId);
       else backToLobby();
     },
     onLobby: backToLobby,
   });
 
-  let lastMatch = { diff: 'easy', opts: {}, level: null };
+  let lastMatch = { diff: 'easy', opts: {}, level: null, charId: 'dili' };
+
+  function selectedCharacter() {
+    try { return localStorage.getItem('df_character') || 'dili'; } catch { return 'dili'; }
+  }
 
   function onMatchEnd(r) {
     DB.reportMatch(r).then((reward) => {
@@ -115,11 +119,16 @@ function initGame() {
     });
   }
 
-  function startLevel(level) {
+  function startLevel(level, charId = selectedCharacter()) {
     lastMatch = {
       diff: level.diff,
       level,
-      opts: { arenaIndex: level.arena, levelId: level.id, tag: 'campaign', onMatchEnd },
+      charId,
+      opts: {
+        arenaIndex: level.arena, levelId: level.id, tag: 'campaign',
+        aiMods: level.mods, oppName: level.opp, playerCharacter: charId,
+        onMatchEnd,
+      },
     };
     startMatch(level.diff, lastMatch.opts);
   }
@@ -127,8 +136,11 @@ function initGame() {
   // ---------- lobby ----------
 
   const lobby = new Lobby({
-    onQuickMatch: (diff) => {
-      lastMatch = { diff, level: null, opts: { tag: 'quick', onMatchEnd } };
+    onQuickMatch: (diff, charId) => {
+      lastMatch = {
+        diff, level: null, charId,
+        opts: { tag: 'quick', playerCharacter: charId, onMatchEnd },
+      };
       startMatch(diff, lastMatch.opts);
     },
     onLevel: startLevel,
@@ -145,7 +157,11 @@ function initGame() {
   // ---------- title / quick-play path ----------
 
   const difficultySelect = new DifficultySelect((difficulty) => {
-    lastMatch = { diff: difficulty, level: null, opts: { tag: 'quick', onMatchEnd } };
+    const charId = selectedCharacter();
+    lastMatch = {
+      diff: difficulty, level: null, charId,
+      opts: { tag: 'quick', playerCharacter: charId, onMatchEnd },
+    };
     startMatch(difficulty, lastMatch.opts);
   });
 

@@ -20,8 +20,10 @@ export class AuthScreen {
     this.el.id = 'auth-screen';
     this.el.innerHTML = `
       <div class="auth-card">
+        <div class="auth-glow" aria-hidden="true"></div>
         <div class="auth-kicker">SHADOW REALM ARENA</div>
         <h1 class="auth-logo">DILI<span>FIGHTER</span></h1>
+        <p class="auth-sub">${this.mode === 'signin' ? 'Welcome back, fighter.' : 'Become a fighter.'}</p>
 
         <div class="auth-tabs">
           <button type="button" class="auth-tab active" data-mode="signin">SIGN IN</button>
@@ -31,7 +33,7 @@ export class AuthScreen {
         <label class="auth-field">
           <span>USERNAME</span>
           <input id="auth-username" type="text" autocomplete="username"
-                 maxlength="16" spellcheck="false" placeholder="your fighter name" />
+                 maxlength="16" spellcheck="false" placeholder="letters, numbers, _ (3–16)" />
         </label>
         <label class="auth-field">
           <span>PASSWORD</span>
@@ -41,13 +43,17 @@ export class AuthScreen {
 
         <div id="auth-error" class="auth-error" role="alert"></div>
 
-        <button id="auth-go-btn" class="btn-action btn-hero auth-go" type="button">SIGN IN</button>
+        <button id="auth-go-btn" class="btn-action btn-hero auth-go" type="button">
+          <span class="auth-go-label">SIGN IN</span>
+        </button>
 
         <div class="auth-divider"><span>or</span></div>
 
-        <button id="auth-guest-btn" class="auth-guest" type="button">PLAY AS GUEST</button>
+        <button id="auth-guest-btn" class="auth-guest" type="button">
+          PLAY AS GUEST
+        </button>
 
-        ${this.onBack ? '<button id="auth-back-btn" class="home-link" type="button">BACK TO TITLE</button>' : ''}
+        ${this.onBack ? '<button id="auth-back-btn" class="home-link auth-back" type="button">BACK TO TITLE</button>' : ''}
       </div>
     `;
     document.body.appendChild(this.el);
@@ -59,12 +65,16 @@ export class AuthScreen {
       tab.addEventListener('click', () => {
         this.mode = tab.dataset.mode;
         tabs.forEach((t) => t.classList.toggle('active', t === tab));
-        this.goBtn.textContent = this.mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+        this.goLabel.textContent = this.mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+        this.el.querySelector('.auth-sub').textContent =
+          this.mode === 'signin' ? 'Welcome back, fighter.' : 'Become a fighter.';
         this.setError('');
       });
     });
 
     this.goBtn = this.el.querySelector('#auth-go-btn');
+    this.goLabel = this.el.querySelector('.auth-go-label');
+    this.guestBtn = this.el.querySelector('#auth-guest-btn');
     this.errorEl = this.el.querySelector('#auth-error');
     this.userInput = this.el.querySelector('#auth-username');
     this.passInput = this.el.querySelector('#auth-password');
@@ -74,7 +84,7 @@ export class AuthScreen {
       if (e.key === 'Enter') this.submit();
     });
 
-    this.el.querySelector('#auth-guest-btn').addEventListener('click', () => this.guest());
+    this.guestBtn.addEventListener('click', () => this.guest());
 
     const back = this.el.querySelector('#auth-back-btn');
     if (back) back.addEventListener('click', () => this.onBack && this.onBack());
@@ -88,7 +98,8 @@ export class AuthScreen {
   setBusy(busy, label) {
     this.busy = busy;
     this.goBtn.disabled = busy;
-    if (label) this.goBtn.textContent = label;
+    this.guestBtn.disabled = busy;
+    if (label) this.goLabel.textContent = label;
     this.el.classList.toggle('busy', busy);
   }
 
@@ -101,7 +112,7 @@ export class AuthScreen {
       ? await Auth.signIn(username, password)
       : await Auth.signUp(username, password);
     this.setBusy(false);
-    this.goBtn.textContent = this.mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+    this.goLabel.textContent = this.mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
     if (!res.ok) {
       this.setError(res.error);
       return;
@@ -111,9 +122,11 @@ export class AuthScreen {
 
   async guest() {
     if (this.busy) return;
-    this.setBusy(true, 'ENTERING…');
+    this.guestBtn.textContent = 'ENTERING…';
+    this.setBusy(true, this.mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT');
     const res = await Auth.signInGuest();
     this.setBusy(false);
+    this.guestBtn.textContent = 'PLAY AS GUEST';
     if (!res.ok) {
       this.setError(res.error);
       return;

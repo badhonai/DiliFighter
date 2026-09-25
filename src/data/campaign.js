@@ -1,31 +1,27 @@
 /**
  * Campaign — level definitions and reward rules.
  * Pure data: the lobby, engine and save layer all read from here.
+ * More levels = more difficulty: each trial tunes the opponent's brain
+ * (speed, aggression, reads) on top of the base difficulty preset.
  */
 export const CAMPAIGN = [
-  { id: 1, name: 'FIRST CONTACT',   desc: 'Tsunami tests your basics.',        diff: 'easy',   arena: 0 },
-  { id: 2, name: 'ROOFTOP RAIN',    desc: 'Faster reads under the neon rain.', diff: 'easy',   arena: 1 },
-  { id: 3, name: 'FORGE TRIAL',     desc: 'A fair duel. No handicaps.',        diff: 'medium', arena: 2 },
-  { id: 4, name: 'SKY RUINS',       desc: 'Tsunami counters what he sees.',    diff: 'medium', arena: 3 },
-  { id: 5, name: 'HOLO RING',       desc: 'Championship pace, no mercy.',      diff: 'hard',   arena: 4 },
-  { id: 6, name: 'DESERT CHAMPION', desc: 'Defeat the storm itself.',          diff: 'hard',   arena: 5 },
+  { id: 1, name: 'FIRST CONTACT',   opp: 'TSUNAMI · APPRENTICE',    diff: 'easy',   arena: 0,
+    desc: 'Tsunami tests your basics.', mods: {} },
+  { id: 2, name: 'ROOFTOP RAIN',    opp: 'TSUNAMI · DUELIST',       diff: 'easy',   arena: 1,
+    desc: 'Faster reads under the neon rain.', mods: { speed: 1.05, attackBias: 1.1 } },
+  { id: 3, name: 'FORGE TRIAL',     opp: 'TSUNAMI · BLADEMASTER',   diff: 'medium', arena: 2,
+    desc: 'A fair duel. No handicaps.', mods: { speed: 1.05 }, unlocksCharacter: 'tsunami' },
+  { id: 4, name: 'SKY RUINS',       opp: 'TSUNAMI · COUNTERMASTER', diff: 'medium', arena: 3,
+    desc: 'He counters what he sees.', mods: { speed: 1.08, defendBias: 1.3 } },
+  { id: 5, name: 'HOLO RING',       opp: 'CRIMSON TSUNAMI',         diff: 'hard',   arena: 4,
+    desc: 'Championship pace, no mercy.', mods: { speed: 1.1, attackBias: 1.12 } },
+  { id: 6, name: 'DESERT CHAMPION', opp: 'TSUNAMI · CHAMPION',      diff: 'hard',   arena: 5,
+    desc: 'The champion defends his belt.', mods: { speed: 1.12, attackBias: 1.15, defendBias: 1.1 } },
+  { id: 7, name: 'VOID ASCENSION',  opp: 'SHADOW TSUNAMI',          diff: 'hard',   arena: 0,
+    desc: 'A shadow with the storm inside.', mods: { speed: 1.15, attackBias: 1.22, decision: 0.85 } },
+  { id: 8, name: 'THE STORM ITSELF', opp: 'TSUNAMI UNLEASHED',      diff: 'hard',   arena: 5,
+    desc: 'Defeat the storm itself.', mods: { speed: 1.2, attackBias: 1.3, defendBias: 1.2, decision: 0.8, dashIn: 1.4 } },
 ];
-
-/** First-clear trophies — one per level, displayed in the inventory. */
-export const LEVEL_ITEMS = {
-  1: { id: 'fist_wraps',   name: 'Bronze Fist Wraps',  rarity: 'common',    icon: 'punch',
-       desc: 'Worn by every rookie who survives their first duel.' },
-  2: { id: 'neon_headband', name: 'Neon Headband',      rarity: 'common',    icon: 'shadow',
-       desc: 'Glows faintly in the rain. Tsunami hates it.' },
-  3: { id: 'forge_charm',  name: 'Forge Charm',        rarity: 'rare',      icon: 'heavy',
-       desc: 'Warm to the touch. Proof you walked out of the forge.' },
-  4: { id: 'sky_feather',  name: 'Sky Palace Feather', rarity: 'rare',      icon: 'ranged',
-       desc: 'Fallen from the ruins above the clouds.' },
-  5: { id: 'holo_belt',    name: 'Holo Champion Belt', rarity: 'epic',      icon: 'kick',
-       desc: 'The ring projects your name in light when you wear it.' },
-  6: { id: 'storm_mask',   name: 'Mask of the Storm',  rarity: 'legendary', icon: 'block',
-       desc: 'Taken from the champion. The storm bows to you now.' },
-};
 
 /** Star rating from the player's remaining health on a win. */
 export function starsForWin(playerHealthPct) {

@@ -31,8 +31,6 @@ export class ResultScreen {
 
     const rewards = [];
     if (r.coins > 0) rewards.push(`<div class="reward-line coins">+${r.coins} COINS</div>`);
-    if (r.newItem) rewards.push(
-      `<div class="reward-line item">NEW ITEM UNLOCKED — <strong>${r.newItem.name}</strong></div>`);
     if (r.unlockedNext) rewards.push(
       `<div class="reward-line unlock">NEXT LEVEL UNLOCKED</div>`);
 
