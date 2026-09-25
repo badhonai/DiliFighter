@@ -228,14 +228,16 @@ export class Lobby {
 
   panelFighters() {
     const base = import.meta.env.BASE_URL;
+    const picked = characterById(this.selectedChar);
     this.panelEl.innerHTML = `
       <h2 class="panel-title">CHOOSE YOUR FIGHTER</h2>
+      <p class="panel-sub">FIGHTING AS: <strong style="color:${picked.accent}">${picked.name}</strong> — tap a portrait to switch.</p>
       <div class="roster-grid">
         ${ROSTER.map((c) => {
           const unlocked = isUnlocked(c, (id) => DB.starsOf(id));
           const selected = this.selectedChar === c.id;
           return `
-          <div class="roster-card ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'}" data-char="${c.id}">
+          <button type="button" class="roster-card ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'}" data-char="${c.id}" ${unlocked ? '' : 'aria-disabled="true"'}>
             <div class="roster-portrait" style="--accent:${c.accent}">
               ${c.portrait ? `<img src="${base}${c.portrait}" alt="" draggable="false" />` : ''}
               ${!unlocked && !c.comingSoon ? `<div class="roster-lock">CLEAR LEVEL ${c.unlockLevel}</div>` : ''}
@@ -245,7 +247,7 @@ export class Lobby {
             <div class="roster-sub">${c.subtitle}</div>
             <div class="roster-style">${c.style}</div>
             ${unlocked ? `<div class="roster-pick">${selected ? 'SELECTED' : 'SELECT'}</div>` : ''}
-          </div>`;
+          </button>`;
         }).join('')}
       </div>
     `;
@@ -499,18 +501,18 @@ export class Lobby {
     this.panelEl.innerHTML = `
       <h2 class="panel-title">SETTINGS</h2>
       <div class="settings-list">
-        <div class="settings-row" id="st-music" role="button" tabindex="0">
+        <button type="button" class="settings-row" id="st-music">
           <span class="settings-label">MUSIC</span>
           <span class="settings-value" id="st-music-state"></span>
-        </div>
+        </button>
         <div class="settings-row">
           <span class="settings-label">ACCOUNT</span>
           <span class="settings-value dim">${p.is_guest ? 'Guest session' : '@' + (p.username || DB.displayName())}</span>
         </div>
-        <div class="settings-row" id="st-signout" role="button" tabindex="0">
+        <button type="button" class="settings-row" id="st-signout">
           <span class="settings-label">SIGN OUT</span>
           <span class="settings-value link">CONFIRM</span>
-        </div>
+        </button>
       </div>
       <div class="settings-foot">DILIFIGHTER v${GAME_CONFIG.VERSION} — Shadow Realm Arena</div>
     `;

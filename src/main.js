@@ -122,13 +122,16 @@ function initGame() {
   }
 
   function startLevel(level, charId = selectedCharacter()) {
+    // Picking Tsunami flips the duel: the AI then fights as Dili, so the
+    // announced opponent name must follow.
+    const oppName = charId === 'tsunami' ? level.opp.replace('TSUNAMI', 'DILI') : level.opp;
     lastMatch = {
       diff: level.diff,
       level,
       charId,
       opts: {
         arenaIndex: level.arena, levelId: level.id, tag: 'campaign',
-        aiMods: level.mods, oppName: level.opp, playerCharacter: charId,
+        aiMods: level.mods, oppName, playerCharacter: charId,
         onMatchEnd,
       },
     };

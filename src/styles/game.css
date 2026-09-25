@@ -271,11 +271,8 @@ html, body {
 
 /* Pause Overlay */
 .modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
   background: rgba(3, 6, 12, 0.88);
   display: flex;
   flex-direction: column;
@@ -614,6 +611,8 @@ html, body {
   width: 100%;
   margin: 10px 0;
   padding: 14px 18px;
+  appearance: none; -webkit-appearance: none; font: inherit;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   background: rgba(8, 14, 24, 0.6);
   border: 1px solid rgba(56, 189, 248, 0.22);
   border-radius: 8px;
@@ -626,6 +625,10 @@ html, body {
 .settings-row:hover {
   border-color: rgba(56, 189, 248, 0.6);
   background: rgba(14, 24, 40, 0.75);
+}
+.settings-row:active {
+  background: rgba(47, 125, 246, 0.25);
+  border-color: rgba(56, 189, 248, 0.8);
 }
 
 .settings-label {
@@ -1171,11 +1174,15 @@ body.in-lobby #skip-tutorial-btn {
 /* ---------- FIGHTERS / roster ---------- */
 .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .roster-card {
+  display: block; width: 100%;
+  appearance: none; -webkit-appearance: none; font: inherit; color: var(--df-text);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   padding: 12px; text-align: center; border-radius: 12px; cursor: pointer;
   background: linear-gradient(165deg, rgba(14, 26, 48, 0.92), rgba(7, 13, 26, 0.94));
   border: 1px solid var(--df-line);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
+.roster-card:active { transform: scale(0.97); border-color: var(--df-line-strong); }
 .roster-card:hover { transform: translateY(-2px); border-color: var(--df-line-strong); }
 .roster-card.selected {
   border-color: var(--df-cyan);
