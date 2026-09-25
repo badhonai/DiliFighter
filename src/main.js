@@ -30,8 +30,9 @@ function initGame() {
   // ---------- session helpers ----------
 
   async function bindSession(session) {
-    const username = Auth.usernameOf(session.user);
-    await DB.bind(session.user.id, username);
+    const meta = (session.user && session.user.user_metadata) || {};
+    const isGuest = meta.is_guest === true;
+    await DB.bind(session.user.id, Auth.usernameOf(session.user), isGuest);
     // Guests get a readable name the first time they arrive
     if (!DB.data.profile.username) {
       await DB.ensureUsername('Guest_' + Math.random().toString(36).slice(2, 6).toUpperCase());
@@ -61,13 +62,14 @@ function initGame() {
       return true;
     }
     return new Promise((resolve) => {
-      new AuthScreen({
+      const screen = new AuthScreen({
         onDone: async () => {
           const fresh = await Auth.getSession();
           if (fresh) await bindSession(fresh);
           resolve(true);
         },
         onBack: () => {
+          screen.destroy();
           home.show();
           resolve(false);
         },

@@ -2,12 +2,14 @@
  * Auth — username + password sign-in (nothing else) and one-tap guest play.
  *
  * Supabase authenticates with email+password, so a username is mapped to a
- * synthetic mailbox on a domain we own:  bruce -> bruce@players.dilifighter.gg
+ * synthetic mailbox:  bruce -> bruce@players.dilifighter.vercel.app
+ * The domain MUST resolve in DNS — Supabase's hosted auth validates the
+ * mailbox domain with a live DNS lookup and rejects NXDOMAIN domains.
  * No email is ever sent; the "Confirm email" setting must stay OFF.
  */
 import { getSupabase } from './cloud.js';
 
-const MAIL_DOMAIN = '@players.dilifighter.gg';
+const MAIL_DOMAIN = '@players.dilifighter.vercel.app';
 const USERNAME_RE = /^[a-z0-9_]{3,16}$/;
 
 export function normalizeUsername(raw) {
@@ -27,7 +29,9 @@ function friendlyAuthError(err) {
   if (msg.includes('at least 6 characters') || msg.includes('password'))
     return 'Password must be at least 6 characters.';
   if (msg.includes('email not confirmed'))
-    return 'Sign-in is disabled on the server (email confirmation is still ON). Tell @DlicomApp to flip it in Supabase.';
+    return 'Sign-in is blocked by the server ("Confirm email" is still ON). The owner must turn it OFF in Supabase → Authentication → Email.';
+  if (msg.includes('is invalid') && msg.includes('email address'))
+    return 'Server rejected the account mailbox — the owner must update the game build or Supabase settings.';
   if (msg.includes('rate limit'))
     return 'Too many attempts — wait a moment and retry.';
   if (msg.includes('fetch') || msg.includes('network'))

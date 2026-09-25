@@ -6,8 +6,24 @@
  */
 import { getSupabase } from './cloud.js';
 
+/** Translate raw PostgREST/GoTrue errors into something a player can act on. */
+function friendlyDbError(msg) {
+  const m = String(msg || '').toLowerCase();
+  if (m.includes('could not find the function')
+      || m.includes('could not find the table')
+      || m.includes('does not exist')
+      || m.includes('pgrst202') || m.includes('pgrst201') || m.includes('42p01')
+      || m.includes('schema cache'))
+    return 'Server setup incomplete — the owner must run supabase_setup.sql in Supabase (SQL Editor).';
+  if (m.includes('row-level security') || m.includes('42501'))
+    return 'Not allowed — check that you are signed in.';
+  if (m.includes('fetch') || m.includes('network'))
+    return 'No connection — check your internet.';
+  return msg || 'Network error';
+}
+
 function err(res) {
-  return res.error ? (res.error.message || 'Network error') : null;
+  return res.error ? friendlyDbError(res.error.message) : null;
 }
 
 export const Social = {
@@ -41,7 +57,7 @@ export const Social = {
     if (res.error) {
       const m = res.error.message || '';
       if (m.includes('duplicate') || m.includes('23505')) return { ok: false, error: 'Request already sent.' };
-      return { ok: false, error: 'Could not send request.' };
+      return { ok: false, error: friendlyDbError(m) };
     }
     return { ok: true };
   },

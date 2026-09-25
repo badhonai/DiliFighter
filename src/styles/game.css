@@ -853,6 +853,7 @@ body.in-lobby #skip-tutorial-btn {
 }
 .auth-error.active { visibility: visible; }
 
+.auth-bottom { display: flex; flex-direction: column; }
 .auth-go { width: 100%; margin: 0 0 4px; font-size: 16px; padding: 12px 0; animation: none; }
 
 .auth-divider {
@@ -863,15 +864,49 @@ body.in-lobby #skip-tutorial-btn {
   content: ''; flex: 1; height: 1px; background: rgba(68, 83, 107, 0.4);
 }
 
+/* Guest play — the one-tap way in. Bright, inviting, always visible. */
 .auth-guest {
-  width: 100%; padding: 12px 0; background: transparent;
-  border: 1px solid rgba(143, 163, 191, 0.4); border-radius: 7px;
-  color: #c3d2e8; font-family: 'Rajdhani', sans-serif; font-weight: 700;
-  font-size: 15px; letter-spacing: 2px; cursor: pointer;
+  width: 100%; padding: 12px 0; cursor: pointer;
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, rgba(15, 44, 78, 0.92), rgba(8, 22, 44, 0.95));
+  border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 7px;
+  color: #dff4ff; font-family: 'Rajdhani', sans-serif; font-weight: 700;
+  font-size: 15px; letter-spacing: 2px;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.22), inset 0 0 14px rgba(56, 189, 248, 0.07);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
-.auth-guest:hover { border-color: #c3d2e8; background: rgba(143, 163, 191, 0.08); }
+.auth-guest svg { color: var(--df-amber); filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6)); }
+.auth-guest:hover {
+  border-color: #7dd3fc;
+  box-shadow: 0 0 26px rgba(56, 189, 248, 0.4), inset 0 0 18px rgba(56, 189, 248, 0.12);
+}
+.auth-guest:active { transform: scale(0.985); }
+.auth-guest:disabled { opacity: 0.55; cursor: default; }
 
 #auth-screen.busy .auth-card { opacity: 0.85; }
+
+/* Compact landscape auth — everything fits in ~340px of height */
+@media (max-height: 520px) {
+  .auth-card { width: min(600px, 96vw); padding: 12px 20px 12px; }
+  .auth-kicker, .auth-sub, .auth-divider { display: none; }
+  .auth-logo { font-size: 20px; letter-spacing: 2px; margin: 0 0 8px; }
+  .auth-tabs { margin-bottom: 8px; }
+  .auth-tab { padding: 6px 0; font-size: 12px; letter-spacing: 1px; }
+  .auth-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .auth-field { margin-bottom: 0; }
+  .auth-field span { font-size: 10px; margin-bottom: 3px; }
+  .auth-field input { padding: 8px 11px; font-size: 15px; }
+  .auth-error { min-height: 14px; font-size: 11px; margin: 4px 0 6px; }
+  .auth-bottom {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch;
+  }
+  .auth-go { margin: 0; padding: 9px 0; font-size: 14px; }
+  .auth-guest { padding: 9px 0; font-size: 13px; }
+  .auth-back {
+    position: absolute; top: 8px; right: 12px; margin: 0;
+    font-size: 11px; letter-spacing: 1px;
+  }
+}
 
 /* ---------- LOBBY SHELL ---------- */
 #lobby {
@@ -1243,10 +1278,11 @@ body.in-lobby #skip-tutorial-btn {
   font-size: 14px; letter-spacing: 1px; outline: none;
 }
 .nickname-row input:focus { border-color: var(--df-line-strong); }
+.nickname-msg { font-size: 12px; letter-spacing: 0.5px; color: var(--df-dim); min-width: 60px; }
 .nickname-msg { font-size: 12px; color: #7ee0a3; letter-spacing: 1px; }
 
 /* ---------- AUTH polish ---------- */
-.auth-card { position: relative; overflow: hidden; }
+.auth-card { position: relative; overflow-x: hidden; overflow-y: auto; }
 .auth-glow {
   position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
   width: 340px; height: 120px; border-radius: 50%;
@@ -1256,3 +1292,117 @@ body.in-lobby #skip-tutorial-btn {
 .auth-sub { color: var(--df-dim); font-size: 13px; letter-spacing: 1px; margin: -10px 0 16px; }
 .auth-back { margin-top: 12px; }
 .auth-go { display: flex; justify-content: center; align-items: center; }
+
+/* ============================================================
+   LANDSCAPE / SHORT-SCREEN PASS — everything must survive
+   320–400px of height without clipping or breaking.
+   ============================================================ */
+@media (max-height: 520px) {
+  /* ---- shared ---- */
+  .modal-card {
+    padding: 14px 22px 12px;
+    max-width: 580px;
+    max-height: 96vh;
+    overflow-y: auto;
+  }
+  .modal-title { font-size: 19px; letter-spacing: 1.5px; margin-bottom: 8px; }
+  .btn-action { font-size: 14px; padding: 8px 18px; margin: 5px; }
+  .btn-hero { font-size: 16px; padding: 11px 30px; }
+
+  /* ---- home ---- */
+  .home-card { padding: 6px 16px; }
+  .home-kicker { font-size: 10px; letter-spacing: 4px; margin-bottom: 4px; }
+  .home-logo { font-size: clamp(30px, 9vh, 52px); margin-bottom: 4px; }
+  .home-tagline { font-size: 12px; letter-spacing: 2px; margin-bottom: 14px; }
+  .home-actions { gap: 10px; }
+  .home-link { margin-top: 10px; font-size: 13px; padding: 3px 10px; }
+  .home-version { margin-top: 6px; font-size: 10px; }
+
+  /* ---- help (tabbed, must never scroll) ---- */
+  .help-card { width: min(660px, 96vw); padding: 10px 16px 10px; max-height: 96vh; }
+  .help-tabs { margin-bottom: 8px; }
+  .help-tab { padding: 5px 0; font-size: 11px; letter-spacing: 1px; }
+  #help-close-btn { width: 26px; height: 26px; top: 7px; right: 7px; }
+  .help-page { font-size: 12.5px; line-height: 1.4; }
+
+  /* ---- settings ---- */
+  .settings-card { max-width: 430px; padding: 16px 18px 10px; }
+  .settings-row { margin: 6px 0; padding: 8px 14px; }
+  .settings-label, .settings-value { font-size: 13px; letter-spacing: 1.5px; }
+
+  /* ---- pause (modal-card with inline spacing) ---- */
+  #pause-modal .modal-title { margin-bottom: 4px; }
+  #pause-modal .modal-card > div:last-child { margin-top: 10px !important; }
+  #pause-modal h4 { margin-bottom: 6px !important; }
+
+  /* ---- difficulty select ---- */
+  .difficulty-card { max-width: 660px; }
+  .difficulty-sub { font-size: 12px; margin: -4px 0 8px; }
+  .difficulty-grid { gap: 8px; }
+  .diff-option { min-width: 126px; padding: 9px 10px 8px; gap: 4px; }
+  .diff-name { font-size: 15px; letter-spacing: 2px; }
+  .diff-pips .pip { width: 7px; height: 7px; }
+  .diff-blurb { font-size: 11px; line-height: 1.3; }
+
+  /* ---- result screen ---- */
+  .result-card {
+    width: min(500px, 94vw); padding: 12px 20px 12px;
+    max-height: 96vh; overflow-y: auto;
+  }
+  .result-kicker { font-size: 10px; }
+  .result-title { font-size: 26px; letter-spacing: 3px; margin: 2px 0 0; }
+  .result-stars { font-size: 19px; margin-top: 2px; }
+  .result-sub { margin: 4px 0 8px; font-size: 12.5px; }
+  .result-rewards { gap: 4px; margin-bottom: 10px; }
+  .reward-line { padding: 4px 8px; font-size: 12px; }
+  .result-actions .btn-action { padding: 8px 16px; font-size: 13px; margin: 0; }
+
+  /* ---- lobby shell ---- */
+  .lobby-top { padding: 7px 16px; }
+  .lobby-brand { font-size: 15px; }
+  #lobby-player-name { font-size: 13px; }
+  .lobby-coins { font-size: 13px; }
+  .lobby-player-dot { width: 10px; height: 10px; }
+  .lobby-player-dot.big { width: 30px; height: 30px; }
+  .lobby-nav { padding: 8px 6px; gap: 2px; }
+  .lobby-panel { padding: 10px 16px 16px; }
+  .panel-title { font-size: 15px; margin-bottom: 8px; }
+
+  /* ---- play panel ---- */
+  .mode-grid { gap: 10px; }
+  .mode-card { padding: 12px 16px; }
+  .mode-name { font-size: 15px; margin-bottom: 3px; }
+  .mode-desc { font-size: 12px; min-height: 0; }
+  .mode-cta, .mode-soon { margin-top: 8px; padding: 5px 16px; font-size: 12px; }
+  .mode-progress { margin-top: 8px; }
+  .quick-diff-row { margin-top: 8px; }
+
+  /* ---- campaign levels ---- */
+  .level-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 9px; }
+  .level-card { padding: 10px 12px; }
+  .level-name { font-size: 14px; margin: 1px 0 4px; }
+  .level-stars { margin: 5px 0 4px; font-size: 13px; }
+  .level-desc { font-size: 11px; }
+  .level-meta { margin: 4px 0; }
+
+  /* ---- fighters / roster ---- */
+  .roster-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 9px; }
+  .roster-card { padding: 10px; }
+  .roster-name { font-size: 14px; }
+  .roster-sub { margin: 1px 0 4px; }
+  .roster-style { font-size: 10.5px; min-height: 0; }
+
+  /* ---- social ---- */
+  .social-note { font-size: 12px; margin: 6px 0; }
+  .social-h { margin: 10px 0 6px; }
+  .friend-row, .rank-row { padding: 7px 10px; }
+
+  /* ---- profile ---- */
+  .profile-id { margin-bottom: 10px; gap: 10px; }
+  .profile-name { font-size: 16px; }
+  .nickname-row { margin: 8px 0; }
+
+  /* ---- player card popup ---- */
+  .player-card-inner { padding: 14px 18px 12px; }
+  .player-card-inner h3 { font-size: 16px; margin-bottom: 3px; }
+}

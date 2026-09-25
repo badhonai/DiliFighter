@@ -30,28 +30,35 @@ export class AuthScreen {
           <button type="button" class="auth-tab" data-mode="signup">CREATE ACCOUNT</button>
         </div>
 
-        <label class="auth-field">
-          <span>USERNAME</span>
-          <input id="auth-username" type="text" autocomplete="username"
-                 maxlength="16" spellcheck="false" placeholder="letters, numbers, _ (3–16)" />
-        </label>
-        <label class="auth-field">
-          <span>PASSWORD</span>
-          <input id="auth-password" type="password" autocomplete="current-password"
-                 maxlength="64" placeholder="at least 6 characters" />
-        </label>
+        <div class="auth-fields">
+          <label class="auth-field">
+            <span>USERNAME</span>
+            <input id="auth-username" type="text" autocomplete="username"
+                   maxlength="16" spellcheck="false" placeholder="letters, numbers, _ (3–16)" />
+          </label>
+          <label class="auth-field">
+            <span>PASSWORD</span>
+            <input id="auth-password" type="password" autocomplete="current-password"
+                   maxlength="64" placeholder="at least 6 characters" />
+          </label>
+        </div>
 
         <div id="auth-error" class="auth-error" role="alert"></div>
 
-        <button id="auth-go-btn" class="btn-action btn-hero auth-go" type="button">
-          <span class="auth-go-label">SIGN IN</span>
-        </button>
+        <div class="auth-bottom">
+          <button id="auth-go-btn" class="btn-action btn-hero auth-go" type="button">
+            <span class="auth-go-label">SIGN IN</span>
+          </button>
 
-        <div class="auth-divider"><span>or</span></div>
+          <div class="auth-divider"><span>or</span></div>
 
-        <button id="auth-guest-btn" class="auth-guest" type="button">
-          PLAY AS GUEST
-        </button>
+          <button id="auth-guest-btn" class="auth-guest" type="button">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" fill="currentColor"/>
+            </svg>
+            <span>PLAY AS GUEST</span>
+          </button>
+        </div>
 
         ${this.onBack ? '<button id="auth-back-btn" class="home-link auth-back" type="button">BACK TO TITLE</button>' : ''}
       </div>
@@ -85,6 +92,7 @@ export class AuthScreen {
     });
 
     this.guestBtn.addEventListener('click', () => this.guest());
+    this.guestLabel = this.guestBtn.querySelector('span');
 
     const back = this.el.querySelector('#auth-back-btn');
     if (back) back.addEventListener('click', () => this.onBack && this.onBack());
@@ -122,11 +130,11 @@ export class AuthScreen {
 
   async guest() {
     if (this.busy) return;
-    this.guestBtn.textContent = 'ENTERING…';
+    this.guestLabel.textContent = 'ENTERING…';
     this.setBusy(true, this.mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT');
     const res = await Auth.signInGuest();
     this.setBusy(false);
-    this.guestBtn.textContent = 'PLAY AS GUEST';
+    this.guestLabel.textContent = 'PLAY AS GUEST';
     if (!res.ok) {
       this.setError(res.error);
       return;
@@ -135,8 +143,15 @@ export class AuthScreen {
   }
 
   finish(user) {
-    this.el.classList.add('leaving');
-    setTimeout(() => this.el.remove(), 300);
+    this.destroy();
     this.onDone(user);
+  }
+
+  destroy() {
+    if (!this.el || !this.el.isConnected) return;
+    const el = this.el;
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 300);
+    this.el = null;
   }
 }

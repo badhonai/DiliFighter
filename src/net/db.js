@@ -11,10 +11,9 @@ import { CAMPAIGN, starsForWin, coinsForStars, FIRST_CLEAR_BONUS, QUICK_MATCH_WI
 const CACHE_KEY = 'df_cloud_cache_v1';
 
 const DEFAULTS = {
-  profile: { username: null, is_guest: true, matches: 0, wins: 0, losses: 0, coins: 0 },
+  profile: { username: null, nickname: null, is_guest: true, matches: 0, wins: 0, losses: 0, coins: 0 },
   progress: { highest_level: 1, stars: {} },
   settings: {},
-  items: [],
 };
 
 function loadCache() {
@@ -46,12 +45,13 @@ export const DB = {
   },
 
   /** Called right after sign-in / session restore. */
-  async bind(userId, fallbackUsername = null) {
+  async bind(userId, fallbackUsername = null, fallbackIsGuest = null) {
     this.userId = userId;
     this.data = loadCache() || structuredClone(DEFAULTS);
     if (fallbackUsername && !this.data.profile.username) {
       this.data.profile.username = fallbackUsername;
     }
+    if (fallbackIsGuest != null) this.data.profile.is_guest = !!fallbackIsGuest;
     this._persist();
     await this.refresh();
   },
@@ -70,16 +70,16 @@ export const DB = {
       const sb = await getSupabase();
       const uid = this.userId;
 
-      const [prof, prog, items, settings] = await Promise.all([
+      const [prof, prog, settings] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
         sb.from('player_progress').select('*').eq('user_id', uid).maybeSingle(),
-        sb.from('inventory_items').select('item_id,qty').eq('user_id', uid),
         sb.from('user_settings').select('settings').eq('user_id', uid).maybeSingle(),
       ]);
 
       if (prof.data) {
         this.data.profile = {
           username: prof.data.username || this.data.profile.username,
+          nickname: prof.data.nickname || null,
           is_guest: !!prof.data.is_guest,
           matches: prof.data.matches || 0,
           wins: prof.data.wins || 0,
@@ -93,9 +93,29 @@ export const DB = {
           stars: prog.data.stars || {},
         };
       }
-      if (items.data) this.data.items = items.data;
       if (settings.data && settings.data.settings) {
         this.data.settings = { ...this.data.settings, ...settings.data.settings };
+      }
+
+      // Self-heal: if the signup trigger never created our rows (setup SQL
+      // run late, or account predates it), insert them now so sync works.
+      if (!prof.data) {
+        await sb.from('profiles').insert({
+          id: uid,
+          username: this.data.profile.username,
+          is_guest: this.data.profile.is_guest,
+          matches: this.data.profile.matches,
+          wins: this.data.profile.wins,
+          losses: this.data.profile.losses,
+          coins: this.data.profile.coins,
+        });
+      }
+      if (!prog.data) {
+        await sb.from('player_progress').insert({
+          user_id: uid,
+          highest_level: this.data.progress.highest_level,
+          stars: this.data.progress.stars,
+        });
       }
       this._persist();
     } catch { /* offline — cache stays authoritative until next refresh */ }
@@ -201,9 +221,5 @@ export const DB = {
 
   levelUnlocked(levelId) {
     return levelId <= this.data.progress.highest_level;
-  },
-
-  hasItem(itemId) {
-    return this.data.items.some((it) => it.item_id === itemId);
   },
 };
