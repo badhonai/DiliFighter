@@ -12,13 +12,18 @@ import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { TouchButtons } from '../ui/TouchButtons.js';
 import { MatchAnnouncer } from '../ui/MatchAnnouncer.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
-import { MusicToggle } from '../ui/MusicToggle.js';
 import { VSSplash } from '../ui/VSSplash.js';
 import { Difficulty } from './Difficulty.js';
 import { Tutorial } from '../ui/Tutorial.js';
 
 export class Engine {
-  constructor(canvas) {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {{autoStart?: boolean}} [options] autoStart=false parks the engine
+   *   in the HOME attract state (living arena behind the title screen) until
+   *   beginMatch(difficulty) is called from the UI flow.
+   */
+  constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
 
@@ -54,7 +59,6 @@ export class Engine {
     this.joystick = new VirtualJoystick(this.inputManager, this.canvas);
     this.touchButtons = new TouchButtons(this.inputManager, this.canvas);
     this.pauseMenu = new PauseMenu(this);
-    this.musicToggle = new MusicToggle(this.soundEngine);
     this.vsSplash = new VSSplash();
     this.tutorial = new Tutorial(this);
 
@@ -87,8 +91,29 @@ export class Engine {
 
     this.setupResize();
     this.setupAutoPause();
+
+    if (options.autoStart === false) {
+      // Attract mode: a living arena idles behind the title screen until the
+      // player picks a difficulty and beginMatch() starts the real bout.
+      this.matchState = 'HOME';
+    } else {
+      this.startRound();
+      this.tutorial.maybeStart(); // first-play guided walkthrough
+    }
+  }
+
+  /**
+   * Kick off a fresh match from the title/difficulty flow. Safe to call
+   * again later (acts like a full restart with a new difficulty).
+   */
+  beginMatch(difficulty = null) {
+    if (difficulty) Difficulty.set(difficulty);
+    if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
+    this.roundNumber = 1;
+    this.player.roundsWon = 0;
+    this.opponent.roundsWon = 0;
     this.startRound();
-    this.tutorial.maybeStart(); // first-play guided walkthrough
+    this.tutorial.maybeStart();
   }
 
   setupResize() {
@@ -179,6 +204,17 @@ export class Engine {
   }
 
   update(dt) {
+    // Attract mode behind the title screen: the arena breathes (stage
+    // animation, idle fighters, ambient particles) but nothing fights.
+    if (this.matchState === 'HOME') {
+      this.stage.update(dt, false);
+      this.particleSystem.update(dt);
+      this.player.update(dt, this.opponent, this.soundEngine, this.particleSystem, this.projectiles);
+      this.opponent.update(dt, this.player, this.soundEngine, this.particleSystem, this.projectiles);
+      this.inputManager.update();
+      return;
+    }
+
     // Check Pause
     if (this.inputManager.isActionJustPressed('pause')) {
       this.pauseMenu.togglePause();
@@ -520,6 +556,13 @@ export class Engine {
     this.particleSystem.render(ctx);
 
     this.camera.restoreTransform(ctx);
+
+    // Title screen (attract mode): show ONLY the living arena — no HUD, no
+    // touch controls, no banners. The HTML home overlay sits on top.
+    if (this.matchState === 'HOME') {
+      ctx.restore();
+      return;
+    }
 
     // 5. Fixed HUD & UI Elements (canvas is currently in world-space transform)
     this.hud.render(ctx, this.player, this.opponent, this.matchTimer, this.roundNumber, this.projectiles);

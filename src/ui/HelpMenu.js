@@ -1,46 +1,16 @@
 /**
- * HelpMenu
- * A small persistent "?" button (top-right, next to the fullscreen toggle) that
- * opens the full controls guide as a modal. Keeps the in-game HUD clean.
+ * HelpMenu — the full controls guide as a modal. No standalone button: it is
+ * opened from the Settings panel ("Controls Guide") and the title screen
+ * ("How to Play"), keeping the in-game HUD to just two icons.
  */
 export class HelpMenu {
   constructor(engine = null) {
     this.engine = engine;
     this.createDOM();
     this.bindEvents();
-    this.maybeAutoOpenFirstVisit();
-  }
-
-  /**
-   * First-time visitors get the guide opened automatically; when they close
-   * it, the "?" button pulses so they learn where the guide lives for later.
-   */
-  maybeAutoOpenFirstVisit() {
-    const KEY = 'dilifighter_guide_seen';
-    let seen = false;
-    try { seen = localStorage.getItem(KEY) === '1'; } catch (e) { /* private mode */ }
-    if (seen) return;
-    // The interactive tutorial IS the first-time experience — don't stack
-    // the text guide on top of it.
-    if (this.engine && this.engine.tutorial && this.engine.tutorial.active) return;
-
-    this.isFirstVisit = true;
-    this.markSeen = () => {
-      try { localStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ }
-    };
-    // Small delay so the page settles (and portrait users rotate first)
-    setTimeout(() => this.open(), 800);
   }
 
   createDOM() {
-    // Persistent "?" help button
-    this.helpBtn = document.createElement('button');
-    this.helpBtn.id = 'help-toggle-btn';
-    this.helpBtn.type = 'button';
-    this.helpBtn.setAttribute('aria-label', 'Open Controls Guide');
-    this.helpBtn.textContent = '?';
-    document.body.appendChild(this.helpBtn);
-
     const base = import.meta.env.BASE_URL;
     const icon = (name) => `<img class="help-icon" src="${base}icons/${name}.svg" alt="" draggable="false" />`;
 
@@ -106,7 +76,6 @@ export class HelpMenu {
   }
 
   bindEvents() {
-    this.helpBtn.addEventListener('click', () => this.open());
     this.overlay.querySelector('#help-close-btn').addEventListener('click', () => this.close());
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay) this.close();
@@ -122,20 +91,19 @@ export class HelpMenu {
 
   open() {
     this.overlay.classList.add('active');
-    this.helpBtn.classList.remove('attention'); // user found the guide — stop hinting
-    // Reading the manual is not fighting: pause the match behind it
-    if (this.engine && this.engine.pauseMenu && !this.engine.pauseMenu.isPaused) {
+    // Reading the manual is not fighting: pause the match behind it.
+    // Never pause from the title screen — there is nothing to pause yet.
+    if (
+      this.engine &&
+      this.engine.matchState !== 'HOME' &&
+      this.engine.pauseMenu &&
+      !this.engine.pauseMenu.isPaused
+    ) {
       this.engine.pauseMenu.togglePause(true);
     }
   }
 
   close() {
     this.overlay.classList.remove('active');
-    if (this.isFirstVisit) {
-      this.isFirstVisit = false;
-      if (this.markSeen) this.markSeen();
-      // Pulse the "?" so players learn the guide lives behind it
-      this.helpBtn.classList.add('attention');
-    }
   }
 }

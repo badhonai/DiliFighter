@@ -31,7 +31,7 @@ export class PauseMenu {
 
     this.overlayEl.innerHTML = `
       <div class="modal-card">
-        <h2 class="modal-title">⚔️ BATTLE PAUSED</h2>
+        <h2 class="modal-title">BATTLE PAUSED</h2>
 
         <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
           <button id="btn-resume" class="btn-action">RESUME BATTLE</button>
