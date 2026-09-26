@@ -6,21 +6,31 @@ import { SoundEngine } from '../audio/SoundEngine.js';
 import { ParticleSystem } from '../entities/ParticleSystem.js';
 import { Dili } from '../characters/Dili.js';
 import { Tsunami } from '../characters/Tsunami.js';
+import { Lafaek } from '../characters/Lafaek.js';
+import { Manu } from '../characters/Manu.js';
+import { loadCharacterSprites } from '../entities/SpriteStore.js';
 import { ImageStage } from '../stages/ImageStage.js';
 import { HUD } from '../ui/HUD.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { TouchButtons } from '../ui/TouchButtons.js';
 import { MatchAnnouncer } from '../ui/MatchAnnouncer.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
-import { MusicToggle } from '../ui/MusicToggle.js';
 import { VSSplash } from '../ui/VSSplash.js';
 import { Difficulty } from './Difficulty.js';
+import { GraphicsQuality } from './GraphicsQuality.js';
 import { Tutorial } from '../ui/Tutorial.js';
 
 export class Engine {
-  constructor(canvas) {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {{autoStart?: boolean}} [options] autoStart=false parks the engine
+   *   in the HOME attract state (living arena behind the title screen) until
+   *   beginMatch(difficulty) is called from the UI flow.
+   */
+  constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.renderSuspended = false;
 
     // Mobile GPU rescue: canvas shadowBlur/shadowColor are the single most
     // expensive 2D ops and this game used them ~30x per frame. On coarse
@@ -54,13 +64,13 @@ export class Engine {
     this.joystick = new VirtualJoystick(this.inputManager, this.canvas);
     this.touchButtons = new TouchButtons(this.inputManager, this.canvas);
     this.pauseMenu = new PauseMenu(this);
-    this.musicToggle = new MusicToggle(this.soundEngine);
     this.vsSplash = new VSSplash();
     this.tutorial = new Tutorial(this);
 
     // Entities
     this.player = new Dili(350, GAME_CONFIG.PHYSICS.GROUND_Y);
     this.opponent = new Tsunami(930, GAME_CONFIG.PHYSICS.GROUND_Y);
+    this.playerCharacter = 'dili';
     this.projectiles = [];
 
     // Match State
@@ -87,8 +97,94 @@ export class Engine {
 
     this.setupResize();
     this.setupAutoPause();
+
+    if (options.autoStart === false) {
+      // Attract mode: a living arena idles behind the title screen until the
+      // player picks a difficulty and beginMatch() starts the real bout.
+      this.matchState = 'HOME';
+    } else {
+      this.startRound();
+      this.tutorial.maybeStart(); // first-play guided walkthrough
+    }
+  }
+
+  /**
+   * Swap the fighter references for character select. The player picks a
+   * character; the opponent becomes the OTHER fighter (AI-controlled).
+   */
+  configureFighters(playerCharId = 'dili') {
+    const GY = GAME_CONFIG.PHYSICS.GROUND_Y;
+    const CLASSES = { dili: Dili, tsunami: Tsunami, lafaek: Lafaek, manu: Manu };
+    const PlayerClass = CLASSES[playerCharId] || Dili;
+    // The campaign duel: pick Tsunami and Dili answers; otherwise Tsunami.
+    const OppClass = playerCharId === 'tsunami' ? Dili : Tsunami;
+    this.player = new PlayerClass(350, GY, { isPlayer: true, direction: 1 });
+    this.opponent = new OppClass(930, GY, { isPlayer: false, direction: -1 });
+    this.playerCharacter = this.player.charId;
+    // Sprite-sheet trial: pull pose frames for both duelists (no-op until
+    // loaded; the renderer falls back to vector meanwhile).
+    loadCharacterSprites(this.player.charId, import.meta.env.BASE_URL);
+    loadCharacterSprites(this.opponent.charId, import.meta.env.BASE_URL);
+    // HUD trailing-health bars track whatever fighters are live now
+    this.hud.reset();
+  }
+
+  /**
+   * Kick off a fresh match from the title/difficulty flow. Safe to call
+   * again later (acts like a full restart with a new difficulty).
+   * @param {string|null} difficulty
+   * @param {{arenaIndex?:number, levelId?:number, tag?:string,
+   *          playerCharacter?:string, aiMods?:object,
+   *          onMatchEnd?: (r:{playerWon:boolean, playerHealthPct:number,
+   *          levelId?:number, tag?:string}) => void}} [opts]
+   *   onMatchEnd replaces the default auto-restart so the lobby can show a
+   *   results screen instead.
+   */
+  beginMatch(difficulty = null, opts = {}) {
+    if (difficulty) Difficulty.set(difficulty);
+    if (typeof document !== 'undefined') document.body.classList.add('in-match');
+    if (opts.playerCharacter && opts.playerCharacter !== this.playerCharacter) {
+      this.configureFighters(opts.playerCharacter);
+    }
+    this.vsSplash.setMatchup(this.player.charId, this.opponent.charId);
+    // Per-level opponent brain tuning (campaign). Cleared for quick match.
+    this.opponent.aiMods = opts.aiMods || null;
+    if (Number.isInteger(opts.arenaIndex)) this.stage.select(opts.arenaIndex);
+    else this.stage.unpin();
+    this.levelId = opts.levelId ?? null;
+    this.matchTag = opts.tag || 'quick';
+    this.matchOppName = opts.oppName || null;
+    this.matchEndHook = opts.onMatchEnd || null;
+    if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
+    clearTimeout(this.matchEndTimer);
+    this.roundNumber = 1;
+    this.player.roundsWon = 0;
+    this.opponent.roundsWon = 0;
     this.startRound();
-    this.tutorial.maybeStart(); // first-play guided walkthrough
+    this.tutorial.maybeStart();
+  }
+
+  /**
+   * Park the engine back on the title/lobby backdrop: fighters reset to
+   * their idle poses, combat state cleared, no HUD.
+   */
+  toAttract() {
+    if (typeof document !== 'undefined') document.body.classList.remove('in-match');
+    if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
+    clearTimeout(this.matchEndTimer);
+    this.matchState = 'HOME';
+    this.matchEndHook = null;
+    this.levelId = null;
+    this.matchOppName = null;
+    if (this.opponent) this.opponent.aiMods = null;
+    this.projectiles = [];
+    this.particleSystem.clear();
+    this.player.reset(350, 1);
+    this.opponent.reset(930, -1);
+    this.playerHasActed = false;
+    this.hitstop = 0;
+    this.timeScale = 1.0;
+    this.hud.reset();
   }
 
   setupResize() {
@@ -113,8 +209,9 @@ export class Engine {
 
   resizeViewport() {
     // Native devicePixelRatio (3x on many phones) renders 9x the pixels of
-    // 1x for zero visible benefit in a stylized game — cap it hard.
-    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    // 1x for zero visible benefit in a stylized game — cap it hard. The
+    // player's Graphics Quality preset lowers the cap further at runtime.
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR, GraphicsQuality.dprCap());
     const width = window.innerWidth;
     const height = window.innerHeight;
 
@@ -162,7 +259,7 @@ export class Engine {
 
     this.announcer.announce(
       `ROUND ${this.roundNumber}`,
-      this.stage.arena.name,
+      this.matchOppName || this.stage.arena.name,
       2.0,
       '#f8fafc'
     );
@@ -179,6 +276,17 @@ export class Engine {
   }
 
   update(dt) {
+    // Attract mode behind the title screen: the arena breathes (stage
+    // animation, idle fighters, ambient particles) but nothing fights.
+    if (this.matchState === 'HOME') {
+      this.stage.update(dt, false);
+      this.particleSystem.update(dt);
+      this.player.update(dt, this.opponent, this.soundEngine, this.particleSystem, this.projectiles);
+      this.opponent.update(dt, this.player, this.soundEngine, this.particleSystem, this.projectiles);
+      this.inputManager.update();
+      return;
+    }
+
     // Check Pause
     if (this.inputManager.isActionJustPressed('pause')) {
       this.pauseMenu.togglePause();
@@ -315,7 +423,7 @@ export class Engine {
       const oppHurtboxes = this.opponent.getHurtboxes();
       for (const hb of oppHurtboxes) {
         if (p1Hitbox.intersects(hb)) {
-          p1Hitbox.properties.damage = Math.round(p1Hitbox.properties.damage * Difficulty.preset.playerDamage);
+          p1Hitbox.properties.damage = Math.round(p1Hitbox.properties.damage * Difficulty.preset.playerDamage * (this.player.damageMult || 1));
           this.player.hasHitOpponent = true;
           this.player.comboCount++;
           this.hud.showCombo(1, this.player.comboCount);
@@ -338,7 +446,7 @@ export class Engine {
       const playerHurtboxes = this.player.getHurtboxes();
       for (const hb of playerHurtboxes) {
         if (p2Hitbox.intersects(hb)) {
-          p2Hitbox.properties.damage = Math.round(p2Hitbox.properties.damage * Difficulty.preset.aiDamage);
+          p2Hitbox.properties.damage = Math.round(p2Hitbox.properties.damage * Difficulty.preset.aiDamage * (this.opponent.damageMult || 1));
           this.opponent.hasHitOpponent = true;
           this.opponent.comboCount++;
           this.hud.showCombo(2, this.opponent.comboCount);
@@ -368,7 +476,9 @@ export class Engine {
       const target = proj.owner === this.player ? this.opponent : this.player;
       const projHitbox = proj.getHitbox();
       projHitbox.properties.damage = Math.round(projHitbox.properties.damage *
-        (proj.owner === this.player ? Difficulty.preset.playerDamage : Difficulty.preset.aiDamage));
+        (proj.owner === this.player
+          ? Difficulty.preset.playerDamage * (this.player.damageMult || 1)
+          : Difficulty.preset.aiDamage * (this.opponent.damageMult || 1)));
 
       for (const hb of target.getHurtboxes()) {
         if (projHitbox.intersects(hb)) {
@@ -464,9 +574,28 @@ export class Engine {
         );
         if (isPlayerWin) this.soundEngine.playVictory();
         else this.soundEngine.playDefeat();
-        setTimeout(() => {
-          this.restartMatch();
-        }, 4500);
+
+        if (this.matchEndHook) {
+          // Lobby flow: hand the outcome to the results screen. The hook is
+          // kept alive for the whole match session (pause -> restart still
+          // ends back on a results screen); only toAttract/beginMatch reset it.
+          const hook = this.matchEndHook;
+          clearTimeout(this.matchEndTimer);
+          this.matchEndTimer = setTimeout(() => {
+            hook({
+              playerWon: isPlayerWin,
+              playerHealthPct: Math.max(0, Math.round(
+                (this.player.health / GAME_CONFIG.MATCH.MAX_HEALTH) * 100)),
+              levelId: this.levelId ?? undefined,
+              tag: this.matchTag,
+            });
+          }, 1600);
+        } else {
+          clearTimeout(this.matchEndTimer);
+          this.matchEndTimer = setTimeout(() => {
+            this.restartMatch();
+          }, 4500);
+        }
         return;
       }
     }
@@ -521,6 +650,13 @@ export class Engine {
 
     this.camera.restoreTransform(ctx);
 
+    // Title screen (attract mode): show ONLY the living arena — no HUD, no
+    // touch controls, no banners. The HTML home overlay sits on top.
+    if (this.matchState === 'HOME') {
+      ctx.restore();
+      return;
+    }
+
     // 5. Fixed HUD & UI Elements (canvas is currently in world-space transform)
     this.hud.render(ctx, this.player, this.opponent, this.matchTimer, this.roundNumber, this.projectiles);
 
@@ -544,18 +680,27 @@ export class Engine {
       const frameTime = (currentTime - this.lastTime) / 1000;
       this.lastTime = currentTime;
 
-      const dt = Math.min(frameTime, GAME_CONFIG.MAX_DELTA_TIME);
-      this.accumulator += dt;
+      // Opaque menu screens (title/lobby) carry their own cinematic art —
+      // skip all simulation + drawing behind them (battery/GPU rescue).
+      if (!this.renderSuspended) {
+        const dt = Math.min(frameTime, GAME_CONFIG.MAX_DELTA_TIME);
+        this.accumulator += dt;
 
-      while (this.accumulator >= GAME_CONFIG.FIXED_TIMESTEP) {
-        this.update(GAME_CONFIG.FIXED_TIMESTEP);
-        this.accumulator -= GAME_CONFIG.FIXED_TIMESTEP;
+        while (this.accumulator >= GAME_CONFIG.FIXED_TIMESTEP) {
+          this.update(GAME_CONFIG.FIXED_TIMESTEP);
+          this.accumulator -= GAME_CONFIG.FIXED_TIMESTEP;
+        }
+
+        this.render();
       }
-
-      this.render();
       requestAnimationFrame(loop);
     };
 
     requestAnimationFrame(loop);
+  }
+
+  /** Pause the whole sim+draw loop while an opaque screen covers it. */
+  suspendRendering(on) {
+    this.renderSuspended = !!on;
   }
 }

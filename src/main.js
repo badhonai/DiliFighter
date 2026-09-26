@@ -1,16 +1,195 @@
+/**
+ * GameFlow — title -> auth -> lobby -> match -> results, all wired together.
+ *
+ * The engine always exists; screens decide what it shows:
+ *  - lobby/title screens park it in attract mode (living arena backdrop)
+ *  - PLAY transitions run the real fight and report results back to the DB
+ */
+import { GAME_CONFIG } from './config.js';
 import { Engine } from './core/Engine.js';
-import { OrientationGuard } from './ui/OrientationGuard.js';
+import { GraphicsQuality } from './core/GraphicsQuality.js';
+import { HomeScreen } from './ui/HomeScreen.js';
 import { HelpMenu } from './ui/HelpMenu.js';
+import { AuthScreen } from './ui/lobby/AuthScreen.js';
+import { Lobby } from './ui/lobby/Lobby.js';
+import { ResultScreen } from './ui/lobby/ResultScreen.js';
+import { Auth } from './net/auth.js';
+import { DB } from './net/db.js';
+import { CAMPAIGN } from './data/campaign.js';
 
 function initGame() {
   const canvas = document.getElementById('game-canvas');
   if (!canvas) return;
 
-  new OrientationGuard();
+  const engine = new Engine(canvas, { autoStart: false });
+  const helpMenu = new HelpMenu(engine);
 
-  const engine = new Engine(canvas);
-  new HelpMenu(engine);
+  // ---------- session helpers ----------
+
+  async function bindSession(session) {
+    const meta = (session.user && session.user.user_metadata) || {};
+    const isGuest = meta.is_guest === true;
+    await DB.bind(session.user.id, Auth.usernameOf(session.user), isGuest);
+    // Guests get a readable name the first time they arrive
+    if (!DB.data.profile.username) {
+      await DB.ensureUsername('Guest_' + Math.random().toString(36).slice(2, 6).toUpperCase());
+    }
+    applyCloudPrefs();
+  }
+
+  function applyCloudPrefs() {
+    const s = DB.data.settings;
+    if (s.graphics && GraphicsQuality.all().includes(s.graphics)) {
+      GraphicsQuality.set(s.graphics, { persist: true });
+      window.dispatchEvent(new Event('resize'));
+    }
+    if (typeof s.music === 'boolean' && engine.soundEngine.musicEnabled !== s.music) {
+      engine.soundEngine.toggleMusic();
+    }
+  }
+
+  function setInGameUI(visible) {
+    document.body.classList.toggle('in-lobby', !visible);
+  }
+
+  async function ensureSession() {
+    const session = await Auth.getSession();
+    if (session) {
+      await bindSession(session);
+      return true;
+    }
+    return new Promise((resolve) => {
+      const screen = new AuthScreen({
+        onDone: async () => {
+          const fresh = await Auth.getSession();
+          if (fresh) await bindSession(fresh);
+          resolve(true);
+        },
+        onBack: () => {
+          screen.destroy();
+          engine.suspendRendering(true);
+          home.show();
+          resolve(false);
+        },
+      });
+    });
+  }
+
+  // ---------- match lifecycle ----------
+
+  function startMatch(diff, opts = {}) {
+    setInGameUI(true);
+    lobby.hide();
+    engine.suspendRendering(false);
+    engine.beginMatch(diff, opts);
+  }
+
+  function backToLobby() {
+    engine.toAttract();
+    engine.suspendRendering(true); // opaque lobby art covers the arena
+    lobby.show();
+    setInGameUI(false);
+  }
+
+  const resultScreen = new ResultScreen({
+    onRematch: () => startMatch(lastMatch.diff, lastMatch.opts),
+    onNext: () => {
+      const next = CAMPAIGN.find((c) => c.id === (lastMatch.level ? lastMatch.level.id + 1 : 0));
+      if (next && DB.levelUnlocked(next.id)) startLevel(next, lastMatch.charId);
+      else backToLobby();
+    },
+    onLobby: backToLobby,
+  });
+
+  let lastMatch = { diff: 'easy', opts: {}, level: null, charId: 'dili' };
+
+  function selectedCharacter() {
+    try { return localStorage.getItem('df_character') || 'dili'; } catch { return 'dili'; }
+  }
+
+  function onMatchEnd(r) {
+    const finish = (reward) => {
+      resultScreen.show({
+        playerWon: r.playerWon,
+        stars: reward.stars,
+        coins: reward.coins,
+        newItem: reward.newItem,
+        unlockedNext: reward.unlockedNext,
+        levelId: r.levelId,
+      });
+      setInGameUI(false);
+    };
+    // Result must ALWAYS appear, even if the cloud report fails.
+    DB.reportMatch(r).then(finish).catch((err) => {
+      console.warn('reportMatch failed, showing result anyway', err);
+      finish({ stars: r.playerWon ? 1 : 0, coins: 0, unlockedNext: false });
+    });
+  }
+
+  function startLevel(level, charId = selectedCharacter()) {
+    // Picking Tsunami flips the duel: the AI then fights as Dili, so the
+    // announced opponent name must follow.
+    const oppName = charId === 'tsunami' ? level.opp.replace('TSUNAMI', 'DILI') : level.opp;
+    lastMatch = {
+      diff: level.diff,
+      level,
+      charId,
+      opts: {
+        arenaIndex: level.arena, levelId: level.id, tag: 'campaign',
+        aiMods: level.mods, oppName, playerCharacter: charId,
+        onMatchEnd,
+      },
+    };
+    startMatch(level.diff, lastMatch.opts);
+  }
+
+  // ---------- lobby ----------
+
+  const lobby = new Lobby({
+    onQuickMatch: (diff, charId) => {
+      lastMatch = {
+        diff, level: null, charId,
+        opts: { tag: 'quick', playerCharacter: charId, onMatchEnd },
+      };
+      startMatch(diff, lastMatch.opts);
+    },
+    onLevel: startLevel,
+    onSignOut: async () => {
+      await Auth.signOut();
+      DB.unbind();
+      engine.toAttract();
+      lobby.hide();
+      setInGameUI(true);
+      engine.suspendRendering(true);
+      home.show();
+    },
+  });
+
+  // ---------- title: PLAY lands in the lobby, the single hub ----------
+
+  const home = new HomeScreen({
+    onPlay: async () => {
+      const ok = await ensureSession();
+      if (!ok) return; // back-to-title was pressed
+      backToLobby();
+    },
+    onHelp: () => helpMenu.open(),
+    version: GAME_CONFIG.VERSION,
+  });
+
+  // In-fight utilities live on the pause menu + a lobby-back icon.
+  engine.pauseMenu.helpMenu = helpMenu;
+  engine.exitToLobby = backToLobby;
+
   engine.run();
+  // Title screen is opaque cinematic art — the sim sleeps behind it.
+  engine.suspendRendering(true);
+
+  // Returning player: silently restore the session so LOBBY opens instantly
+  (async () => {
+    const session = await Auth.getSession();
+    if (session) await bindSession(session);
+  })();
 
   // Expose on window for debugging & testing
   window.DiliFighter = engine;

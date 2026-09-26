@@ -19,6 +19,7 @@ const ARENAS = [
 export class ImageStage {
   constructor() {
     this.arenaIndex = Math.floor(Math.random() * ARENAS.length);
+    this.pinned = false; // campaign levels pin a specific arena
     this.images = [];
     this.ambientTime = 0;
     this.shadowTransition = 0; // 0 = full normal, 1 = full shadow realm
@@ -78,8 +79,20 @@ export class ImageStage {
 
   /** Advance to the next arena (called at the start of each round). */
   advance() {
+    if (this.pinned) return; // campaign levels keep their assigned arena
     if (ARENAS.length < 2) return;
     this.arenaIndex = (this.arenaIndex + 1) % ARENAS.length;
+  }
+
+  /** Pin a specific arena for the whole match (campaign levels). */
+  select(i) {
+    this.arenaIndex = ((i % ARENAS.length) + ARENAS.length) % ARENAS.length;
+    this.pinned = true;
+  }
+
+  /** Resume rotating arenas (quick match). */
+  unpin() {
+    this.pinned = false;
   }
 
   update(dt, isAnyShadowActive) {

@@ -55,7 +55,8 @@ export class Tutorial {
     this.skipBtn = document.createElement('button');
     this.skipBtn.id = 'skip-tutorial-btn';
     this.skipBtn.type = 'button';
-    this.skipBtn.textContent = 'SKIP GUIDE »';
+    this.skipBtn.setAttribute('aria-label', 'Skip tutorial');
+    this.skipBtn.innerHTML = 'SKIP TUTORIAL <span class="skip-x" aria-hidden="true">&times;</span>';
     this.skipBtn.addEventListener('click', () => this.finish());
     document.body.appendChild(this.skipBtn);
   }
@@ -161,32 +162,54 @@ export class Tutorial {
     }
     ctx.restore();
 
-    // Instruction banner
+    // ---- Tutorial banner: impossible to miss that this is the tutorial ----
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '700 24px "Rajdhani", system-ui, sans-serif';
+
+    // Amber "TUTORIAL" tab riding on top of the instruction banner.
+    // Kept below the HTML skip button even on small screens (world scale
+    // can drop to ~0.5, so the top-center stack needs this headroom).
+    ctx.font = '800 17px "Rajdhani", system-ui, sans-serif';
+    const chipLabel = 'TUTORIAL';
+    const chipW = ctx.measureText(chipLabel).width + 40;
+    const chipX = 640 - chipW / 2, chipY = 140;
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(chipX + 8, chipY);
+    ctx.arcTo(chipX + chipW, chipY, chipX + chipW, chipY + 28, 8);
+    ctx.arcTo(chipX + chipW, chipY + 28, chipX, chipY + 28, 8);
+    ctx.arcTo(chipX, chipY + 28, chipX, chipY, 8);
+    ctx.arcTo(chipX, chipY, chipX + chipW, chipY, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1c1003';
+    ctx.fillText(chipLabel, 640, chipY + 15);
+
+    // Instruction banner (connects visually with the tab)
     const label = step.text;
+    ctx.font = '700 24px "Rajdhani", system-ui, sans-serif';
     const w = ctx.measureText(label).width + 44;
-    const bx = 640 - w / 2, by = 96;
-    ctx.fillStyle = 'rgba(5, 10, 20, 0.85)';
-    ctx.strokeStyle = 'rgba(34, 211, 238, 0.7)';
+    const bx = 640 - w / 2, by = 168;
+    ctx.fillStyle = 'rgba(5, 10, 20, 0.88)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(bx + 10, by);
-    ctx.arcTo(bx + w, by, bx + w, by + 44, 10);
-    ctx.arcTo(bx + w, by + 44, bx, by + 44, 10);
-    ctx.arcTo(bx, by + 44, bx, by, 10);
+    ctx.arcTo(bx + w, by, bx + w, by + 46, 10);
+    ctx.arcTo(bx + w, by + 46, bx, by + 46, 10);
+    ctx.arcTo(bx, by + 46, bx, by, 10);
     ctx.arcTo(bx, by, bx + w, by, 10);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = '#a5f3fc';
-    ctx.fillText(label, 640, by + 23);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText(label, 640, by + 24);
 
-    ctx.font = '600 15px "Rajdhani", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.9)';
-    ctx.fillText(`GUIDE  ${this.step + 1} / ${this.steps.length}`, 640, by + 62);
+    // Step progress under the banner
+    ctx.font = '700 16px "Rajdhani", system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(253, 230, 138, 0.85)';
+    ctx.fillText(`STEP ${this.step + 1} OF ${this.steps.length}`, 640, by + 66);
     ctx.restore();
   }
 }

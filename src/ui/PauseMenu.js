@@ -1,19 +1,40 @@
-import { Difficulty } from '../core/Difficulty.js';
-
+/**
+ * PauseMenu — the ONLY in-fight UI icons:
+ *   [←]  back to lobby
+ *   [II] pause / resume
+ * The pause overlay holds resume, restart and the utility settings
+ * (controls guide, music, fullscreen). Difficulty is fixed per level —
+ * there is no difficulty picker anywhere.
+ */
 export class PauseMenu {
   constructor(engine) {
     this.engine = engine;
     this.isPaused = false;
     this.overlayEl = null;
+    this.helpMenu = null; // injected by main.js
 
     this.createDOM();
   }
 
   static ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M8 5h3.2v14H8zM12.8 5H16v14h-3.2z" fill="currentColor"/></svg>';
   static ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+  static ICON_BACK = '<svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2z" fill="currentColor"/></svg>';
 
   createDOM() {
-    // Persistent pause/play icon button in the top-left icon column
+    // Back-to-lobby icon
+    this.backBtn = document.createElement('button');
+    this.backBtn.id = 'back-lobby-btn';
+    this.backBtn.type = 'button';
+    this.backBtn.setAttribute('aria-label', 'Back to lobby');
+    this.backBtn.innerHTML = PauseMenu.ICON_BACK;
+    document.body.appendChild(this.backBtn);
+    this.backBtn.addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
+      if (this.isPaused) this.togglePause(false);
+      if (this.engine.exitToLobby) this.engine.exitToLobby();
+    });
+
+    // Pause / resume icon
     this.toggleBtn = document.createElement('button');
     this.toggleBtn.id = 'pause-toggle-btn';
     this.toggleBtn.type = 'button';
@@ -31,61 +52,95 @@ export class PauseMenu {
 
     this.overlayEl.innerHTML = `
       <div class="modal-card">
-        <h2 class="modal-title">⚔️ BATTLE PAUSED</h2>
+        <h2 class="modal-title">BATTLE PAUSED</h2>
 
         <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
           <button id="btn-resume" class="btn-action">RESUME BATTLE</button>
           <button id="btn-restart" class="btn-action btn-secondary">RESTART MATCH</button>
         </div>
 
-        <div style="margin-top: 22px;">
-          <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Difficulty — pick any time</h4>
-          <div style="display: flex; justify-content: center; gap: 10px;">
-            <button id="diff-easy" class="btn-action btn-secondary">EASY</button>
-            <button id="diff-medium" class="btn-action btn-secondary">MEDIUM</button>
-            <button id="diff-hard" class="btn-action btn-secondary">HARD</button>
-          </div>
+        <div class="pause-settings">
+          <button class="settings-row" id="pm-guide" type="button">
+            <span class="settings-label">CONTROLS GUIDE</span>
+            <span class="settings-value settings-link">OPEN</span>
+          </button>
+          <button class="settings-row" id="pm-music" type="button">
+            <span class="settings-label">MUSIC</span>
+            <span class="settings-value" id="pm-music-state">ON</span>
+          </button>
+          <button class="settings-row" id="pm-fs" type="button">
+            <span class="settings-label">FULLSCREEN</span>
+            <span class="settings-value" id="pm-fs-state">ENTER</span>
+          </button>
         </div>
       </div>
     `;
 
     document.getElementById('ui-overlay').appendChild(this.overlayEl);
 
-    // Event listeners
     document.getElementById('btn-resume').addEventListener('click', () => {
       this.engine.soundEngine.playUIClick();
       this.togglePause(false);
     });
-
     document.getElementById('btn-restart').addEventListener('click', () => {
       this.engine.soundEngine.playUIClick();
       this.togglePause(false);
       this.engine.restartMatch();
     });
 
-    // Difficulty segmented control
-    const refreshDiff = () => {
-      for (const name of Difficulty.all()) {
-        const el = document.getElementById('diff-' + name);
-        const active = Difficulty.current === name;
-        el.style.borderColor = active ? '#22d3ee' : '';
-        el.style.color = active ? '#22d3ee' : '';
-        el.style.boxShadow = active ? '0 0 14px rgba(34, 211, 238, 0.45)' : '';
-      }
-    };
-    for (const name of Difficulty.all()) {
-      document.getElementById('diff-' + name).addEventListener('click', () => {
-        Difficulty.set(name);
-        this.engine.soundEngine.playUIClick();
-        refreshDiff();
-      });
+    document.getElementById('pm-guide').addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
+      this.togglePause(false);
+      if (this.helpMenu) this.helpMenu.open();
+    });
+    document.getElementById('pm-music').addEventListener('click', () => {
+      this.engine.soundEngine.toggleMusic();
+      this.engine.soundEngine.playUIClick();
+      this.syncMusic();
+    });
+    document.getElementById('pm-fs').addEventListener('click', () => {
+      this.engine.soundEngine.playUIClick();
+      this.toggleFullscreen();
+    });
+
+    document.addEventListener('fullscreenchange', () => this.syncFullscreen());
+    document.addEventListener('webkitfullscreenchange', () => this.syncFullscreen());
+  }
+
+  syncMusic() {
+    const el = document.getElementById('pm-music-state');
+    if (!el) return;
+    const on = this.engine.soundEngine.musicEnabled;
+    el.textContent = on ? 'ON' : 'OFF';
+    el.classList.toggle('dim', !on);
+  }
+
+  isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  syncFullscreen() {
+    const el = document.getElementById('pm-fs-state');
+    if (el) el.textContent = this.isFullscreen() ? 'EXIT' : 'ENTER';
+  }
+
+  toggleFullscreen() {
+    if (this.isFullscreen()) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document).catch(() => {});
+    } else {
+      const el = document.documentElement;
+      const request = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (request) request.call(el).catch(() => {});
     }
-    refreshDiff();
+    this.syncFullscreen();
   }
 
   togglePause(forceState = null) {
     this.isPaused = forceState !== null ? forceState : !this.isPaused;
     if (this.isPaused) {
+      this.syncMusic();
+      this.syncFullscreen();
       this.overlayEl.classList.add('active');
     } else {
       this.overlayEl.classList.remove('active');

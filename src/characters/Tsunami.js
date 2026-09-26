@@ -1,16 +1,27 @@
 import { Fighter } from '../entities/Fighter.js';
-import { MOVES } from '../combat/FrameData.js';
-import { Difficulty } from '../core/Difficulty.js';
+import { handlePlayerInput } from './PlayerControls.js';
+import { runAI } from './AiBrain.js';
 
+/**
+ * TSUNAMI — the crimson storm samurai. Heavyweight: hits harder than Dili
+ * but walks a touch slower. The campaign boss; also playable once unlocked.
+ */
 export class Tsunami extends Fighter {
-  constructor(x = 930, y = 580) {
+  constructor(x = 930, y = 580, opts = {}) {
     super({
       name: 'TSUNAMI',
-      isPlayer: false,
+      isPlayer: opts.isPlayer !== undefined ? opts.isPlayer : false,
       x,
       y,
-      direction: -1
+      direction: opts.direction !== undefined ? opts.direction : -1,
     });
+    this.charId = 'tsunami';
+
+    // Character stats — the powerhouse
+    this.walkSpeed = 250;
+    this.shadowWalkSpeed = 315;
+    this.jumpPower = 600;
+    this.damageMult = 1.12;
 
     this.aiTimer = 0;
     this.decisionInterval = 0.25; // Evaluates tactical choices 4x per second
@@ -19,121 +30,11 @@ export class Tsunami extends Fighter {
     this.defendCooldown = 0;
   }
 
+  handleInput(input, soundEngine) {
+    handlePlayerInput(this, input, soundEngine);
+  }
+
   updateAI(dt, player, soundEngine) {
-    if (this.state === 'HIT_STUN' || this.state === 'KNOCKDOWN' || this.state === 'DEAD') {
-      return;
-    }
-
-    this.aiTimer -= dt;
-    this.defendCooldown = Math.max(0, this.defendCooldown - dt);
-    const dist = Math.abs(this.x - player.x);
-    const toPlayerDir = Math.sign(player.x - this.x);
-
-    // Like the player, Tsunami can step while swinging — keeps both fighters
-    // feeling alive instead of rooting mid-attack.
-    if (this.state === 'ATTACKING') {
-      if (dist > 140) this.vx = toPlayerDir * 90;
-      return;
-    }
-
-    // 1. Auto-activate Shadow Mode when energy reaches 100%
-    if (this.shadowSystem.isReady() && dist < 320) {
-      this.shadowSystem.activate();
-      soundEngine.playShadowActivate();
-      return;
-    }
-
-    // 2. If in Shadow Mode, unleash shadow attacks aggressively
-    if (this.shadowSystem.isActive && this.state !== 'ATTACKING') {
-      if (dist < 180 && Math.random() < 0.4) {
-        this.startAttack(MOVES.SHADOW_ERUPTION);
-        return;
-      } else if (dist > 180 && dist < 450 && Math.random() < 0.35) {
-        this.startAttack(MOVES.SHADOW_DASH);
-        return;
-      }
-    }
-
-    // 3. Counter player jumping with anti-air
-    if (player.state === 'JUMP' && dist < 160 && this.state !== 'ATTACKING') {
-      this.startAttack(MOVES.PUNCH_UP);
-      return;
-    }
-
-    // 4. Defensive Reaction: Block or Dodge if player is attacking in close
-    //    range — but only once per cooldown window, like a human read, not
-    //    a frame-perfect machine-gun guard. Odds scale with difficulty.
-    const D = Difficulty.preset;
-    if (player.state === 'ATTACKING' && dist < 170 && this.state !== 'ATTACKING' && this.defendCooldown <= 0) {
-      this.defendCooldown = 0.7;
-      const roll = Math.random();
-      if (roll < 0.35 * D.defendBias) {
-        this.state = 'BLOCK';
-        this.vx = 0;
-        return;
-      } else if (roll < (0.35 + 0.15 * D.defendBias)) {
-        // Low sweep counter
-        this.startAttack(MOVES.KICK_DOWN);
-        return;
-      }
-    }
-
-    // 5. Periodic tactical repositioning and attack selection.
-    //    Every threshold is scaled by the difficulty preset.
-    if (this.aiTimer <= 0) {
-      this.aiTimer = D.decision + Math.random() * 0.2;
-      const bias = Math.min(1.4, D.attackBias);
-
-      // Close combat range (< 120px)
-      if (dist < 120) {
-        const attackChoice = Math.random();
-        if (attackChoice < 0.3 * bias) {
-          this.startAttack(MOVES.PUNCH_1);
-        } else if (attackChoice < 0.55 * bias) {
-          this.startAttack(MOVES.KICK_1);
-        } else if (attackChoice < 0.72 * bias) {
-          this.startAttack(MOVES.KICK_DOWN);
-        } else if (attackChoice < 0.85 * bias) {
-          this.startAttack(MOVES.HEAVY_SMASH);
-        } else {
-          // Backpedal to reset spacing
-          this.vx = -toPlayerDir * 150;
-          this.state = 'WALK_BACK';
-        }
-      }
-      // Mid range (120px - 260px)
-      else if (dist >= 120 && dist <= 260) {
-        const choice = Math.random();
-        if (choice < 0.3 * bias) {
-          this.startAttack(MOVES.PUNCH_FORWARD);
-        } else if (choice < 0.5 * bias) {
-          this.startAttack(MOVES.KICK_FORWARD);
-        } else if (choice < 0.62 * bias) {
-          this.startAttack(MOVES.HEAVY_SMASH);
-        } else if (choice < 0.8) {
-          // Advance forward
-          this.vx = toPlayerDir * 225;
-          this.state = 'WALK_FORWARD';
-        } else if (this.rangedCooldown <= 0 && Math.random() < 0.5) {
-          this.startAttack(MOVES.RANGED_THROW);
-          this.rangedCooldown = 2.4;
-        }
-      }
-      // Far range (> 260px)
-      else {
-        const roll = Math.random();
-        if (roll < 0.6) {
-          // Close the gap
-          this.vx = toPlayerDir * 270;
-          this.state = 'WALK_FORWARD';
-        } else if (roll < 0.6 + 0.18 * D.dashIn && dist < 600) {
-          // Dash-in to pressure
-          if (this.startDash(toPlayerDir)) return;
-        } else if (this.rangedCooldown <= 0) {
-          this.startAttack(MOVES.RANGED_THROW);
-          this.rangedCooldown = 2.4;
-        }
-      }
-    }
+    runAI(this, dt, player, soundEngine);
   }
 }

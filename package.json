@@ -1,6 +1,6 @@
 {
   "name": "dilifighter",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "High-octane 2D/2.5D martial arts fighting game inspired by Shadow Fight, crafted from scratch with custom characters, fluid skeletal vector animations, shadow energy mechanics, and responsive multi-platform controls.",
   "type": "module",
   "scripts": {
@@ -30,5 +30,8 @@
   "homepage": "https://github.com/badhonai/DiliFighter#readme",
   "devDependencies": {
     "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0"
   }
 }

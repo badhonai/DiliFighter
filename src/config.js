@@ -1,6 +1,6 @@
 export const GAME_CONFIG = {
   TITLE: 'DiliFighter',
-  VERSION: '2.0.0',
+  VERSION: '3.0.0',
   // Internal "design" resolution the game world is laid out in. The actual
   // canvas is sized dynamically to fill the device's real viewport, and the
   // world is uniformly scaled (and horizontally centered) to fit while
@@ -24,6 +24,11 @@ export const GAME_CONFIG = {
   // it undefined, NaN-ing hurtboxes so every attack hit from any distance and
   // kunai "collided" on their first frame and vanished before rendering).
   FIGHTER_SCALE: 1.22,
+
+  // Sprite-sheet trial: AI-generated pose frames (public/sprites/<char>/).
+  // false = pure vector fighters. Missing frames fall back per-pose.
+  SPRITES: true,
+  SPRITE_HEIGHT: 140,
 
   MATCH: {
     ROUND_TIME: 60,

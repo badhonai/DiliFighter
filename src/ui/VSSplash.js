@@ -1,14 +1,26 @@
 /**
  * VSSplash — fighting-game character-select intro shown during the ROUND
  * intro. Slides both fighters' generated portraits in around a popping "VS".
+ * The matchup follows the actual duel: your fighter vs the AI's fighter.
  */
+import { characterById } from '../data/roster.js';
+
 export class VSSplash {
   constructor(len = 2.2) {
     this.len = len;
+    this.pId = 'dili';
+    this.oId = 'tsunami';
     this.imgs = {
       dili: this.load('characters/dili_portrait.jpg'),
       tsunami: this.load('characters/tsunami_portrait.jpg'),
+      lafaek: this.load('characters/lafaek_portrait.jpg'),
+      manu: this.load('characters/manu_portrait.jpg'),
     };
+  }
+
+  setMatchup(playerId, oppId) {
+    this.pId = characterById(playerId) ? playerId : 'dili';
+    this.oId = characterById(oppId) ? oppId : 'tsunami';
   }
 
   load(p) {
@@ -95,10 +107,10 @@ export class VSSplash {
 
     ctx.globalAlpha = Math.min(1, alpha / 0.68 + 0.2);
 
-    this.card(ctx, this.imgs.dili, leftX, y, w, h, 'rgba(34, 211, 238, 0.85)',
-      'DILI', 'THE BUBBLE-HELMET HERO', '#67e8f9');
-    this.card(ctx, this.imgs.tsunami, rightX, y, w, h, 'rgba(220, 38, 38, 0.85)',
-      'TSUNAMI', 'CRIMSON STORM SAMURAI', '#fbbf24');
+    this.card(ctx, this.imgs[this.pId], leftX, y, w, h, characterById(this.pId).accent,
+      characterById(this.pId).name, characterById(this.pId).subtitle, characterById(this.pId).accent);
+    this.card(ctx, this.imgs[this.oId], rightX, y, w, h, characterById(this.oId).accent,
+      characterById(this.oId).name, characterById(this.oId).subtitle, characterById(this.oId).accent);
 
     // Popping VS
     const vu = Math.max(0, Math.min(1, (t - 0.4) / 0.4));

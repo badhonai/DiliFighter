@@ -1,4 +1,5 @@
 import { LOW_FX } from '../core/PerfFlags.js';
+import { GraphicsQuality } from '../core/GraphicsQuality.js';
 
 export class ParticleSystem {
   constructor() {
@@ -9,7 +10,13 @@ export class ParticleSystem {
     this.lowFX = LOW_FX;
   }
 
+  /** Player-selected graphics quality scales every emission count. */
+  budget(count) {
+    return Math.max(2, Math.round(count * GraphicsQuality.particleScale()));
+  }
+
   emitHitSpark(x, y, count = 12, isHeavy = false, isShadow = false) {
+    count = this.budget(count);
     const baseColor = isShadow ? '#00f0ff' : isHeavy ? '#ff3b30' : '#ffcc00';
     const secondary = isShadow ? '#ffffff' : '#ff9500';
     if (this.lowFX) count = Math.max(4, Math.floor(count / 2));
@@ -75,6 +82,7 @@ export class ParticleSystem {
   }
 
   emitBlockSpark(x, y, count = 10) {
+    count = this.budget(count);
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI / 4) + (Math.random() * Math.PI / 2);
       const speed = 100 + Math.random() * 150;
@@ -94,6 +102,7 @@ export class ParticleSystem {
   }
 
   emitShadowEmbers(x, y, count = 3) {
+    count = this.budget(count);
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x: x + (Math.random() * 60 - 30),
@@ -111,6 +120,7 @@ export class ParticleSystem {
   }
 
   emitDust(x, y, count = 6) {
+    count = this.budget(count);
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x: x + (Math.random() * 20 - 10),
@@ -138,7 +148,7 @@ export class ParticleSystem {
 
   update(dt) {
     // Hard cap: never let the particle pool balloon (protects frame pacing)
-    const MAX_PARTICLES = this.lowFX ? 140 : 400;
+    const MAX_PARTICLES = Math.round((this.lowFX ? 140 : 400) * GraphicsQuality.particleScale());
     if (this.particles.length > MAX_PARTICLES) {
       this.particles.splice(0, this.particles.length - MAX_PARTICLES);
     }
