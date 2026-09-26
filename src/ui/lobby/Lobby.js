@@ -73,7 +73,7 @@ export class Lobby {
     const DOCK = [
       { id: 'social',   label: 'SOCIAL',   icon: NAV.find((n) => n.id === 'social').icon },
       { id: 'levels',   label: 'LEVELS',   icon: NAV.find((n) => n.id === 'levels').icon },
-      { id: 'play',     label: 'PLAY',     icon: 'M6 4l7 6-7 6V4zm9 2l7 6-7 6V6z' },
+      { id: 'play',     label: 'PLAY',     icon: 'M4.2 2.8h1.8L17.2 14l-1.8 1.8L4.2 4.6V2.8zM19.8 2.8H18L6.8 14l1.8 1.8L19.8 4.6V2.8zM14.9 16.3l2.8 2.8-1.4 1.4-2.8-2.8 1.4-1.4zM9.1 16.3l-2.8 2.8 1.4 1.4 2.8-2.8-1.4-1.4zM3.2 19.6a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0zM17.8 19.6a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0z' },
       { id: 'fighters', label: 'FIGHTERS', icon: NAV.find((n) => n.id === 'fighters').icon },
       { id: 'profile',  label: 'PROFILE',  icon: NAV.find((n) => n.id === 'profile').icon },
     ];
