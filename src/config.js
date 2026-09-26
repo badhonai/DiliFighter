@@ -1,6 +1,6 @@
 export const GAME_CONFIG = {
   TITLE: 'DiliFighter',
-  VERSION: '3.0.0',
+  VERSION: '3.0.1',
   // Internal "design" resolution the game world is laid out in. The actual
   // canvas is sized dynamically to fill the device's real viewport, and the
   // world is uniformly scaled (and horizontally centered) to fit while

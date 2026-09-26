@@ -71,6 +71,10 @@ export class Engine {
     this.player = new Dili(350, GAME_CONFIG.PHYSICS.GROUND_Y);
     this.opponent = new Tsunami(930, GAME_CONFIG.PHYSICS.GROUND_Y);
     this.playerCharacter = 'dili';
+    // Sprite frames for the default duel must start loading immediately —
+    // the sprite-only renderer has no legacy vector body to fall back on.
+    loadCharacterSprites(this.player.charId, import.meta.env.BASE_URL);
+    loadCharacterSprites(this.opponent.charId, import.meta.env.BASE_URL);
     this.projectiles = [];
 
     // Match State
@@ -146,6 +150,9 @@ export class Engine {
     if (opts.playerCharacter && opts.playerCharacter !== this.playerCharacter) {
       this.configureFighters(opts.playerCharacter);
     }
+    // Guarantee frames for whoever is actually in the ring this match.
+    loadCharacterSprites(this.player.charId, import.meta.env.BASE_URL);
+    loadCharacterSprites(this.opponent.charId, import.meta.env.BASE_URL);
     this.vsSplash.setMatchup(this.player.charId, this.opponent.charId);
     // Per-level opponent brain tuning (campaign). Cleared for quick match.
     this.opponent.aiMods = opts.aiMods || null;
