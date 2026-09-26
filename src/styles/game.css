@@ -1384,3 +1384,97 @@ body.in-lobby #skip-tutorial-btn {
   .lobby-panel { margin: 6px auto; padding: 10px 14px 12px; }
   .home-mascot { width: 44px; height: 44px; }
 }
+
+/* ============ bold redesign: LEVELS page ============ */
+.panel-title.big { font-size: 30px; letter-spacing: 5px; }
+.lv-head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.lv-sum { display: flex; gap: 10px; }
+.lv-sum-chip {
+  min-width: 92px; padding: 8px 14px 7px; border-radius: 12px; text-align: center;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.lv-sum-chip b {
+  display: block; font-family: 'Rajdhani', sans-serif; font-weight: 800;
+  font-size: 21px; letter-spacing: 1px; color: #7dd3fc; line-height: 1.1;
+}
+.lv-sum-chip span { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; color: #8fa3bf; }
+
+.level-grid { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 14px; }
+.level-card {
+  position: relative; overflow: hidden;
+  padding: 14px 15px 13px; gap: 7px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(10, 16, 28, 0.88), rgba(7, 11, 20, 0.82));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.level-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; opacity: 0.9;
+}
+.level-card.d-easy::before   { background: linear-gradient(90deg, #4ade80, transparent 70%); }
+.level-card.d-medium::before { background: linear-gradient(90deg, #facc15, transparent 70%); }
+.level-card.d-hard::before   { background: linear-gradient(90deg, #f87171, transparent 70%); }
+.level-card.next {
+  border-color: rgba(56, 189, 248, 0.65);
+  animation: lc-pulse 2.2s ease-in-out infinite;
+}
+@keyframes lc-pulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(56, 189, 248, 0.18); }
+  50%      { box-shadow: 0 0 28px rgba(56, 189, 248, 0.42); }
+}
+.level-card.cleared { border-color: rgba(74, 222, 128, 0.35); }
+.level-card.locked { opacity: 0.45; filter: saturate(0.35); }
+.lc-top { display: flex; justify-content: space-between; align-items: center; }
+.lc-num {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 19px; color: #052030;
+  background: linear-gradient(135deg, #38bdf8, #7dd3fc);
+  clip-path: polygon(0 0, 100% 0, 100% 68%, 68% 100%, 0 100%);
+}
+.level-card.locked .lc-num { background: #33415599; color: #94a3b8; }
+.level-card.cleared .lc-num { background: linear-gradient(135deg, #22c55e, #4ade80); }
+.lc-name {
+  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 19px;
+  letter-spacing: 2px; color: #f2f7ff;
+}
+.lc-opp { font-size: 11px; font-weight: 800; letter-spacing: 1.8px; color: #8fa3bf; }
+.lc-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+.lstar { font-size: 15px; }
+.lc-state { font-size: 10px; font-weight: 800; letter-spacing: 2.2px; color: #7dd3fc; }
+.level-card.cleared .lc-state { color: #4ade80; }
+.level-card.locked .lc-state { color: #64748b; }
+.lc-desc { font-size: 11px; color: #7c8db0; line-height: 1.45; }
+
+/* ============ bold redesign: PROFILE page ============ */
+.pf-hero { display: flex; align-items: center; gap: 16px; padding: 4px 2px 14px; }
+.pf-name {
+  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 30px;
+  letter-spacing: 3px; color: #f2f7ff;
+  text-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+}
+.pf-badges { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.pf-lvl {
+  padding: 3px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #052030;
+  background: linear-gradient(90deg, #38bdf8, #7dd3fc);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.pf-rate { display: flex; align-items: center; gap: 14px; margin: 2px 0 18px; }
+.pf-rate-bar {
+  flex: 1; height: 10px; border-radius: 999px; overflow: hidden;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.pf-rate-bar i {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #0ea5e9, #7dd3fc);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+}
+.pf-rate-txt { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #8fa3bf; white-space: nowrap; }
+.pf-rate-txt b { color: #7dd3fc; font-size: 15px; letter-spacing: 1px; }
+.profile-stats { grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+.stat { padding: 14px 6px 12px; border-radius: 12px; }
+.stat-v { font-size: 27px; letter-spacing: 1px; }
+.pf-edit { border-top: 1px solid rgba(56, 189, 248, 0.15); padding-top: 16px; }

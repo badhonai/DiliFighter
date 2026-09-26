@@ -272,23 +272,39 @@ export class Lobby {
   // ------------------------------------------------------------ LEVELS
 
   panelLevels() {
+    const cleared = CAMPAIGN.filter((c) => DB.starsOf(c.id) > 0).length;
+    const totalStars = CAMPAIGN.reduce((n, c) => n + DB.starsOf(c.id), 0);
+    const nextId = (CAMPAIGN.find((c) => DB.levelUnlocked(c.id) && DB.starsOf(c.id) === 0) || {}).id;
     this.panelEl.innerHTML = `
-      <h2 class="panel-title">CAMPAIGN <em>more levels, tougher storms</em></h2>
+      <div class="lv-head">
+        <div>
+          <h2 class="panel-title big">CAMPAIGN</h2>
+          <p class="panel-sub">Storm trials — clear each one to unlock the next.</p>
+        </div>
+        <div class="lv-sum">
+          <div class="lv-sum-chip"><b>${cleared}/${CAMPAIGN.length}</b><span>CLEARED</span></div>
+          <div class="lv-sum-chip"><b>${totalStars}/${CAMPAIGN.length * 3}</b><span>STARS</span></div>
+        </div>
+      </div>
       <div class="level-grid">
         ${CAMPAIGN.map((lv) => {
           const unlocked = DB.levelUnlocked(lv.id);
-          const stars = DB.starsOf(lv.id);
+          const s = DB.starsOf(lv.id);
+          const state = !unlocked ? 'locked' : (lv.id === nextId ? 'next' : (s > 0 ? 'cleared' : 'open'));
           return `
-          <button class="level-card ${unlocked ? '' : 'locked'}" data-level="${lv.id}" type="button">
-            <div class="level-num">${unlocked ? 'LV ' + lv.id : ''}</div>
-            <div class="level-name">${unlocked ? lv.name : 'LOCKED'}</div>
-            ${unlocked ? `<div class="level-opp">${lv.opp}</div>` : ''}
-            <div class="level-meta">
+          <button class="level-card d-${lv.diff} ${state}" data-level="${lv.id}" type="button">
+            <div class="lc-top">
+              <span class="lc-num">${lv.id}</span>
               <span class="level-diff d-${lv.diff}">${DIFF_INFO[lv.diff].name}</span>
-              <span class="level-stars">${[1, 2, 3].map((i) =>
-                `<span class="lstar ${i <= stars ? 'on' : ''}">★</span>`).join('')}</span>
             </div>
-            <div class="level-desc">${unlocked ? lv.desc : 'Clear the previous trial to unlock.'}</div>
+            <div class="lc-name">${lv.name}</div>
+            <div class="lc-opp">${unlocked ? lv.opp : '· · ·'}</div>
+            <div class="lc-foot">
+              <span class="level-stars">${[1, 2, 3].map((i) =>
+                `<span class="lstar ${i <= s ? 'on' : ''}">★</span>`).join('')}</span>
+              <span class="lc-state">${!unlocked ? 'LOCKED' : (lv.id === nextId ? 'NEXT ▸' : (s > 0 ? 'CLEARED' : 'OPEN'))}</span>
+            </div>
+            <div class="lc-desc">${unlocked ? lv.desc : 'Clear the previous trial to unlock.'}</div>
           </button>`;
         }).join('')}
       </div>
@@ -535,33 +551,43 @@ export class Lobby {
   panelProfile() {
     const p = DB.data.profile;
     const winRate = p.matches > 0 ? Math.round((p.wins / p.matches) * 100) : 0;
-    const rows = [
+    const lvl = DB.data.progress.highest_level;
+    const stars = CAMPAIGN.reduce((n, c) => n + DB.starsOf(c.id), 0);
+    const tiles = [
       ['MATCHES', p.matches], ['WINS', p.wins], ['LOSSES', p.losses],
-      ['WIN RATE', winRate + '%'], ['COINS', p.coins],
-      ['LEVELS CLEARED', CAMPAIGN.filter((c) => DB.starsOf(c.id) > 0).length],
+      ['COINS', p.coins], ['STARS', stars],
+      ['CLEARED', CAMPAIGN.filter((c) => DB.starsOf(c.id) > 0).length],
     ];
     this.panelEl.innerHTML = `
-      <h2 class="panel-title">PROFILE</h2>
+      <h2 class="panel-title big">PROFILE</h2>
       <div class="profile-card">
-        <div class="profile-id">
+        <div class="pf-hero">
           <span class="lobby-player-dot big" aria-hidden="true"></span>
-          <div>
-            <div class="profile-name">${DB.displayName()}</div>
-            <div class="lobby-badge ${p.is_guest ? 'guest' : ''}">${p.is_guest ? 'GUEST' : 'FIGHTER'}</div>
+          <div class="pf-id">
+            <div class="pf-name">${DB.displayName()}</div>
+            <div class="pf-badges">
+              <span class="lobby-badge ${p.is_guest ? 'guest' : ''}">${p.is_guest ? 'GUEST' : 'FIGHTER'}</span>
+              <span class="pf-lvl">LVL ${lvl}</span>
+            </div>
           </div>
         </div>
 
-        <div class="nickname-row">
+        <div class="pf-rate">
+          <div class="pf-rate-bar"><i style="width:${winRate}%"></i></div>
+          <span class="pf-rate-txt">WIN RATE <b>${winRate}%</b></span>
+        </div>
+
+        <div class="profile-stats">
+          ${tiles.map(([k, v]) => `<div class="stat"><span class="stat-v">${v}</span><span class="stat-k">${k}</span></div>`).join('')}
+        </div>
+
+        <div class="nickname-row pf-edit">
           <span class="settings-label">NICKNAME</span>
           <input id="nickname-input" type="text" maxlength="16" spellcheck="false"
                  placeholder="${Auth.usernameOf ? (p.username || 'your username') : 'your username'}"
                  value="${p.nickname || ''}" />
           <button id="nickname-save" class="btn-action btn-small" type="button">SAVE</button>
           <span id="nickname-msg" class="nickname-msg"></span>
-        </div>
-
-        <div class="profile-stats">
-          ${rows.map(([k, v]) => `<div class="stat"><span class="stat-v">${v}</span><span class="stat-k">${k}</span></div>`).join('')}
         </div>
         ${p.is_guest ? `
           <p class="profile-note">Guest progress lives on this device and can't appear on the
