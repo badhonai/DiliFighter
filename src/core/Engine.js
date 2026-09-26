@@ -6,6 +6,8 @@ import { SoundEngine } from '../audio/SoundEngine.js';
 import { ParticleSystem } from '../entities/ParticleSystem.js';
 import { Dili } from '../characters/Dili.js';
 import { Tsunami } from '../characters/Tsunami.js';
+import { Lafaek } from '../characters/Lafaek.js';
+import { Manu } from '../characters/Manu.js';
 import { loadCharacterSprites } from '../entities/SpriteStore.js';
 import { ImageStage } from '../stages/ImageStage.js';
 import { HUD } from '../ui/HUD.js';
@@ -111,14 +113,13 @@ export class Engine {
    */
   configureFighters(playerCharId = 'dili') {
     const GY = GAME_CONFIG.PHYSICS.GROUND_Y;
-    if (playerCharId === 'tsunami') {
-      this.player = new Tsunami(350, GY, { isPlayer: true, direction: 1 });
-      this.opponent = new Dili(930, GY, { isPlayer: false, direction: -1 });
-    } else {
-      this.player = new Dili(350, GY, { isPlayer: true, direction: 1 });
-      this.opponent = new Tsunami(930, GY, { isPlayer: false, direction: -1 });
-    }
-    this.playerCharacter = playerCharId;
+    const CLASSES = { dili: Dili, tsunami: Tsunami, lafaek: Lafaek, manu: Manu };
+    const PlayerClass = CLASSES[playerCharId] || Dili;
+    // The campaign duel: pick Tsunami and Dili answers; otherwise Tsunami.
+    const OppClass = playerCharId === 'tsunami' ? Dili : Tsunami;
+    this.player = new PlayerClass(350, GY, { isPlayer: true, direction: 1 });
+    this.opponent = new OppClass(930, GY, { isPlayer: false, direction: -1 });
+    this.playerCharacter = this.player.charId;
     // Sprite-sheet trial: pull pose frames for both duelists (no-op until
     // loaded; the renderer falls back to vector meanwhile).
     loadCharacterSprites(this.player.charId, import.meta.env.BASE_URL);

@@ -21,8 +21,26 @@ export const ROSTER = [
     accent: '#ef4444',
     unlockLevel: 3, // clear Level 3 (Forge Trial)
   },
-  { id: 'locked1', name: '???', subtitle: 'NEW FIGHTER', style: 'Arrives in a future update.', accent: '#334155', comingSoon: true },
-  { id: 'locked2', name: '???', subtitle: 'NEW FIGHTER', style: 'Arrives in a future update.', accent: '#334155', comingSoon: true },
+  {
+    id: 'lafaek',
+    name: 'LAFAEK',
+    subtitle: 'THE CROCODILE GUARDIAN',
+    style: 'Slow titan — heaviest hits, thickest hide.',
+    portrait: 'characters/lafaek_portrait.jpg',
+    accent: '#22c55e',
+    unlockLevel: 5, // clear Level 5 (Holo Ring)
+  },
+  {
+    id: 'manu',
+    name: 'MANU',
+    subtitle: 'THE DAWN RUNNER',
+    style: 'Fastest feet — quick slashes, light damage.',
+    portrait: 'characters/manu_portrait.jpg',
+    accent: '#facc15',
+    unlockLevel: 7, // clear Level 7 (Void Ascension)
+  },
+  { id: 'locked1', name: '???', subtitle: 'NEW FIGHTER', style: 'Arrives in a future update.', portrait: 'brand/char_pink.png', accent: '#f472b6', comingSoon: true },
+  { id: 'locked2', name: '???', subtitle: 'NEW FIGHTER', style: 'Arrives in a future update.', portrait: 'brand/char_orange.png', accent: '#fb923c', comingSoon: true },
 ];
 
 export function characterById(id) {

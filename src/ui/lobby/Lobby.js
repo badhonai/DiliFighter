@@ -64,42 +64,55 @@ export class Lobby {
   }
 
   createDOM() {
+    const base = import.meta.env.BASE_URL;
     this.el = document.createElement('div');
     this.el.id = 'lobby';
+    // fusion_06: frosted-glass top bar + fanned glass card dock at the bottom.
+    const DOCK = NAV.filter((n) => ['play', 'levels', 'fighters', 'social', 'profile'].includes(n.id));
+    const TILT = [-7, -3.5, 0, 3.5, 7];
     this.el.innerHTML = `
       <header class="lobby-top">
-        <div class="lobby-brand">DILI<span>FIGHTER</span><em>v${GAME_CONFIG.VERSION}</em></div>
+        <div class="lobby-brand">
+          <img class="lobby-logo-chip" src="${base}brand/logo_blue.png" alt="" draggable="false" />
+          DILI<span>FIGHTER</span><em>v${GAME_CONFIG.VERSION}</em>
+        </div>
         <div class="lobby-player">
-          <span class="lobby-player-dot" aria-hidden="true"></span>
+          <img class="lobby-avatar" src="${base}brand/dili_happy.gif" alt="" draggable="false" />
           <span id="lobby-player-name">Player</span>
           <span id="lobby-player-badge" class="lobby-badge">GUEST</span>
           <span class="lobby-coins" id="lobby-coins" title="Coins">0</span>
+          <button class="lobby-pill" data-panel="settings" type="button" aria-label="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8.6 5.2.1-1.7-.1-1.7 2-1.5-1.9-3.3-2.4.9a8 8 0 0 0-2.9-1.7L15 2h-3.8l-.4 2.7a8 8 0 0 0-2.9 1.7l-2.4-.9L3.6 8.8l2 1.5-.2 1.7.2 1.7-2 1.5 1.9 3.3 2.4-.9a8 8 0 0 0 2.9 1.7L11.2 22h3.8l.4-2.7a8 8 0 0 0 2.9-1.7l2.4.9 1.9-3.3-2-1.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="lobby-pill" data-panel="graphics" type="button" aria-label="Graphics">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3H3v14h8v2H7v2h10v-2h-4v-2h8zM5 5h14v10H5z" fill="currentColor"/></svg>
+          </button>
         </div>
       </header>
-      <div class="lobby-body">
-        <nav class="lobby-nav">
-          ${NAV.map((n) => `
-            <button class="lobby-nav-btn ${n.id === 'play' ? 'active' : ''}" data-panel="${n.id}" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${n.icon}" fill="currentColor"/></svg>
-              <span>${n.label}</span>
-            </button>`).join('')}
-        </nav>
-        <main class="lobby-panel" id="lobby-panel"></main>
-      </div>
+      <main class="lobby-panel" id="lobby-panel"></main>
+      <nav class="lobby-dock" aria-label="Sections">
+        ${DOCK.map((n, i) => `
+          <button class="dock-card ${n.id === 'play' ? 'active' : ''}" data-panel="${n.id}" type="button" style="--tilt:${TILT[i]}deg">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${n.icon}" fill="currentColor"/></svg>
+            <span>${n.label}</span>
+          </button>`).join('')}
+      </nav>
     `;
     document.body.appendChild(this.el);
     this.panelEl = this.el.querySelector('#lobby-panel');
   }
 
   bindNav() {
-    this.el.querySelectorAll('.lobby-nav-btn').forEach((btn) => {
-      btn.addEventListener('click', () => this.setPanel(btn.dataset.panel));
+    this.el.querySelectorAll('[data-panel]').forEach((btn) => {
+      if (btn.classList.contains('dock-card') || btn.classList.contains('lobby-pill')) {
+        btn.addEventListener('click', () => this.setPanel(btn.dataset.panel));
+      }
     });
   }
 
   setPanel(id) {
     this.panel = id;
-    this.el.querySelectorAll('.lobby-nav-btn').forEach((b) =>
+    this.el.querySelectorAll('.dock-card').forEach((b) =>
       b.classList.toggle('active', b.dataset.panel === id));
     this.renderPanel();
   }

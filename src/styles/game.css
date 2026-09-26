@@ -1417,3 +1417,116 @@ body.in-lobby #skip-tutorial-btn {
   .player-card-inner { padding: 14px 18px 12px; }
   .player-card-inner h3 { font-size: 16px; margin-bottom: 3px; }
 }
+
+/* ============================================================
+   FUSION_06 LOBBY — frosted glass over the storm arena.
+   Scanline brand texture, glass top bar, fanned card dock.
+   ============================================================ */
+#lobby::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: url('/brand/scanline.png') center / cover;
+  opacity: 0.10; mix-blend-mode: screen;
+}
+#lobby > * { position: relative; z-index: 1; }
+
+.lobby-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(8, 15, 30, 0.55);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+}
+.lobby-brand {
+  display: flex; align-items: center; gap: 9px;
+  font-family: 'Cinzel', serif; font-weight: 800; font-size: 17px;
+  letter-spacing: 2px; color: var(--df-text);
+}
+.lobby-brand span { color: var(--df-amber); }
+.lobby-brand em {
+  font-style: normal; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+  font-size: 11px; color: #51617d; letter-spacing: 1px;
+}
+.lobby-logo-chip {
+  width: 30px; height: 30px; border-radius: 8px; display: block;
+  box-shadow: 0 0 10px rgba(47, 125, 246, 0.5);
+}
+.lobby-player { display: flex; align-items: center; gap: 8px; }
+.lobby-avatar {
+  width: 28px; height: 28px; image-rendering: pixelated;
+  border-radius: 7px; border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(5, 10, 20, 0.7);
+}
+.lobby-coins {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.lobby-coins::before {
+  content: ''; width: 17px; height: 17px;
+  background: url('/brand/coin.gif') center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.lobby-pill {
+  width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(47, 125, 246, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35); color: #9fc7ef;
+  -webkit-tap-highlight-color: transparent;
+}
+.lobby-pill:hover { color: #dff1ff; border-color: rgba(56, 189, 248, 0.7); }
+.lobby-pill svg { width: 17px; height: 17px; }
+
+/* Fanned glass card dock (fusion_06 signature) */
+.lobby-dock {
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: 10px; padding: 10px 12px 14px;
+  background: linear-gradient(180deg, transparent, rgba(4, 8, 18, 0.72));
+}
+.dock-card {
+  appearance: none; -webkit-appearance: none; font: inherit;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  width: 92px; padding: 12px 6px 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(120, 180, 255, 0.07);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 13px;
+  color: var(--df-dim);
+  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 11px;
+  letter-spacing: 1.5px;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+.dock-card svg { width: 21px; height: 21px; }
+.dock-card:hover { color: #cfe6ff; border-color: rgba(56, 189, 248, 0.55); }
+.dock-card.active {
+  transform: rotate(0deg) translateY(-8px);
+  color: #eaf6ff;
+  background: rgba(47, 125, 246, 0.22);
+  border-color: rgba(56, 189, 248, 0.75);
+  box-shadow: 0 6px 24px rgba(47, 125, 246, 0.35), 0 0 18px rgba(56, 189, 248, 0.28);
+}
+
+/* Brand mascot on the title screen + scanline atmosphere */
+.home-mascot {
+  width: 64px; height: 64px; image-rendering: pixelated;
+  margin: 0 auto 6px; display: block;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.45));
+}
+#home-screen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: url('/brand/scanline.png') center / cover;
+  opacity: 0.08; mix-blend-mode: screen;
+}
+.reward-line.coins::before {
+  content: ''; display: inline-block; width: 15px; height: 15px;
+  margin-right: 7px; vertical-align: -3px;
+  background: url('/brand/coin.gif') center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+@media (max-height: 520px) {
+  .dock-card { width: 78px; padding: 8px 4px 7px; font-size: 10px; }
+  .dock-card svg { width: 17px; height: 17px; }
+  .lobby-dock { gap: 7px; padding: 6px 10px 8px; }
+  .lobby-avatar { width: 22px; height: 22px; }
+  .lobby-logo-chip { width: 24px; height: 24px; }
+  .home-mascot { width: 44px; height: 44px; }
+}

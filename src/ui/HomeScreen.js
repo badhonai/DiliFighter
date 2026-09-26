@@ -35,6 +35,7 @@ export class HomeScreen {
     this.el.id = 'home-screen';
     this.el.innerHTML = `
       <div class="home-card">
+        <img class="home-mascot" src="${import.meta.env.BASE_URL}brand/dili_happy.gif" alt="" draggable="false" />
         <div class="home-kicker">SHADOW REALM ARENA</div>
         <h1 class="home-logo">DILI<span>FIGHTER</span></h1>
         <p class="home-tagline">Fast-paced martial arts combat</p>
