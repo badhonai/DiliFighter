@@ -30,6 +30,7 @@ export class Engine {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.renderSuspended = false;
 
     // Mobile GPU rescue: canvas shadowBlur/shadowColor are the single most
     // expensive 2D ops and this game used them ~30x per frame. On coarse
@@ -678,18 +679,27 @@ export class Engine {
       const frameTime = (currentTime - this.lastTime) / 1000;
       this.lastTime = currentTime;
 
-      const dt = Math.min(frameTime, GAME_CONFIG.MAX_DELTA_TIME);
-      this.accumulator += dt;
+      // Opaque menu screens (title/lobby) carry their own cinematic art —
+      // skip all simulation + drawing behind them (battery/GPU rescue).
+      if (!this.renderSuspended) {
+        const dt = Math.min(frameTime, GAME_CONFIG.MAX_DELTA_TIME);
+        this.accumulator += dt;
 
-      while (this.accumulator >= GAME_CONFIG.FIXED_TIMESTEP) {
-        this.update(GAME_CONFIG.FIXED_TIMESTEP);
-        this.accumulator -= GAME_CONFIG.FIXED_TIMESTEP;
+        while (this.accumulator >= GAME_CONFIG.FIXED_TIMESTEP) {
+          this.update(GAME_CONFIG.FIXED_TIMESTEP);
+          this.accumulator -= GAME_CONFIG.FIXED_TIMESTEP;
+        }
+
+        this.render();
       }
-
-      this.render();
       requestAnimationFrame(loop);
     };
 
     requestAnimationFrame(loop);
+  }
+
+  /** Pause the whole sim+draw loop while an opaque screen covers it. */
+  suspendRendering(on) {
+    this.renderSuspended = !!on;
   }
 }

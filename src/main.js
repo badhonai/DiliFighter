@@ -67,6 +67,7 @@ function initGame() {
         },
         onBack: () => {
           screen.destroy();
+          engine.suspendRendering(true);
           home.show();
           resolve(false);
         },
@@ -79,11 +80,13 @@ function initGame() {
   function startMatch(diff, opts = {}) {
     setInGameUI(true);
     lobby.hide();
+    engine.suspendRendering(false);
     engine.beginMatch(diff, opts);
   }
 
   function backToLobby() {
     engine.toAttract();
+    engine.suspendRendering(true); // opaque lobby art covers the arena
     lobby.show();
     setInGameUI(false);
   }
@@ -152,6 +155,7 @@ function initGame() {
       engine.toAttract();
       lobby.hide();
       setInGameUI(true);
+      engine.suspendRendering(true);
       home.show();
     },
   });
@@ -173,6 +177,8 @@ function initGame() {
   engine.exitToLobby = backToLobby;
 
   engine.run();
+  // Title screen is opaque cinematic art — the sim sleeps behind it.
+  engine.suspendRendering(true);
 
   // Returning player: silently restore the session so LOBBY opens instantly
   (async () => {

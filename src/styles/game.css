@@ -1419,48 +1419,72 @@ body.in-lobby #skip-tutorial-btn {
 }
 
 /* ============================================================
-   FUSION_06 LOBBY — frosted glass over the storm arena.
-   Scanline brand texture, glass top bar, fanned card dock.
+   LOBBY — cinematic key-art backdrop + floating glass chrome,
+   matched to the approved reference frame. Same visual language
+   (dark glass, cyan hairlines) carries through every screen.
    ============================================================ */
-#lobby::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
+.lobby-bg {
+  position: absolute; inset: 0;
+  background: center 32% / cover no-repeat rgba(4, 8, 16, 0.9);
+  transition: background-image 0.4s ease;
+}
+.lobby-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    url('/brand/scanline.png') center / cover,
+    radial-gradient(ellipse at 50% 42%, transparent 30%, rgba(2, 4, 10, 0.62) 78%),
+    linear-gradient(180deg, rgba(2, 4, 10, 0.55), transparent 22%, transparent 62%, rgba(2, 4, 10, 0.78));
+  opacity: 0.9; mix-blend-mode: normal;
+}
+.lobby-bg::before {
+  content: ''; position: absolute; inset: 0;
   background: url('/brand/scanline.png') center / cover;
   opacity: 0.10; mix-blend-mode: screen;
 }
 #lobby > * { position: relative; z-index: 1; }
+#lobby .lobby-bg { z-index: 0; }
 
+/* Floating glass top bar */
 .lobby-top {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 14px;
-  background: rgba(8, 15, 30, 0.55);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  margin: 10px 12px 0; padding: 7px 14px;
+  background: rgba(9, 13, 20, 0.78);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+  border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 11px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
 }
-.lobby-brand {
-  display: flex; align-items: center; gap: 9px;
-  font-family: 'Cinzel', serif; font-weight: 800; font-size: 17px;
-  letter-spacing: 2px; color: var(--df-text);
-}
-.lobby-brand span { color: var(--df-amber); }
-.lobby-brand em {
-  font-style: normal; font-family: 'Rajdhani', sans-serif; font-weight: 600;
-  font-size: 11px; color: #51617d; letter-spacing: 1px;
-}
-.lobby-logo-chip {
-  width: 30px; height: 30px; border-radius: 8px; display: block;
-  box-shadow: 0 0 10px rgba(47, 125, 246, 0.5);
-}
-.lobby-player { display: flex; align-items: center; gap: 8px; }
+.lobby-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .lobby-avatar {
-  width: 28px; height: 28px; image-rendering: pixelated;
-  border-radius: 7px; border: 1px solid rgba(56, 189, 248, 0.4);
-  background: rgba(5, 10, 20, 0.7);
+  width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: top;
+  border: 2px solid rgba(56, 189, 248, 0.65);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+  background: #0a1220; image-rendering: auto;
 }
-.lobby-coins {
-  display: inline-flex; align-items: center; gap: 6px;
+.lobby-id-text { display: flex; flex-direction: column; line-height: 1.15; }
+#lobby-player-name {
+  font-size: 15px; font-weight: 800; letter-spacing: 1.5px; color: #f2f7ff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
 }
-.lobby-coins::before {
-  content: ''; width: 17px; height: 17px;
+.lobby-lvl { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #8fa3bf; }
+
+.lobby-logo {
+  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 24px;
+  letter-spacing: 3px; color: #38bdf8; position: relative; padding: 0 18px;
+  text-align: center; text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+}
+.lobby-logo span { color: #f2f7ff; text-shadow: none; }
+.lobby-logo::after {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -7px; width: 64px; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+}
+
+.lobby-currencies { display: flex; align-items: center; gap: 14px; justify-content: flex-end; }
+.cur { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; color: #eaf2ff; }
+.cur svg { width: 16px; height: 16px; filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.5)); }
+.cur-coins::before {
+  content: ''; width: 18px; height: 18px;
   background: url('/brand/coin.gif') center / contain no-repeat;
   image-rendering: pixelated;
 }
@@ -1474,37 +1498,62 @@ body.in-lobby #skip-tutorial-btn {
 .lobby-pill:hover { color: #dff1ff; border-color: rgba(56, 189, 248, 0.7); }
 .lobby-pill svg { width: 17px; height: 17px; }
 
-/* Fanned glass card dock (fusion_06 signature) */
+/* Center content sheet */
+.lobby-panel {
+  flex: 1; min-height: 0; overflow-y: auto;
+  width: min(880px, calc(100% - 24px));
+  margin: 10px auto;
+  padding: 14px 18px 18px;
+  background: rgba(7, 11, 20, 0.72);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.22); border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.lobby-panel.empty { display: none; }
+
+/* Fanned glass card dock */
 .lobby-dock {
-  display: flex; justify-content: center; align-items: flex-end;
-  gap: 10px; padding: 10px 12px 14px;
-  background: linear-gradient(180deg, transparent, rgba(4, 8, 18, 0.72));
+  display: flex; justify-content: center; align-items: stretch;
+  gap: 12px; padding: 4px 12px 14px;
 }
 .dock-card {
   appearance: none; -webkit-appearance: none; font: inherit;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-  width: 92px; padding: 12px 6px 10px; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  background: rgba(120, 180, 255, 0.07);
+  min-width: 118px; padding: 14px 10px 12px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  background: rgba(8, 12, 18, 0.78);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 13px;
-  color: var(--df-dim);
-  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 11px;
-  letter-spacing: 1.5px;
+  border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 11px;
+  color: #cfd8e6;
   transform: rotate(var(--tilt, 0deg));
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, background 0.18s ease;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
-.dock-card svg { width: 21px; height: 21px; }
-.dock-card:hover { color: #cfe6ff; border-color: rgba(56, 189, 248, 0.55); }
+.dock-card svg { width: 30px; height: 30px; color: #e8eef7; }
+.dock-label { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: 2px; color: #f2f7ff; }
+.dock-sub { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #8fa3bf; }
+.dock-card:hover { border-color: rgba(56, 189, 248, 0.7); }
 .dock-card.active {
-  transform: rotate(0deg) translateY(-8px);
-  color: #eaf6ff;
-  background: rgba(47, 125, 246, 0.22);
-  border-color: rgba(56, 189, 248, 0.75);
-  box-shadow: 0 6px 24px rgba(47, 125, 246, 0.35), 0 0 18px rgba(56, 189, 248, 0.28);
+  border-color: rgba(56, 189, 248, 0.85);
+  background: rgba(20, 34, 56, 0.85);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.3);
 }
+.dock-card.cta {
+  min-width: 138px;
+  background: rgba(14, 30, 48, 0.88);
+  border-color: rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 26px rgba(56, 189, 248, 0.35), inset 0 0 22px rgba(56, 189, 248, 0.08);
+  transform: translateY(-6px);
+}
+.dock-card.cta svg { color: #7dd3fc; filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)); }
+.dock-card.cta .dock-label { font-size: 20px; }
+.dock-card.cta:active { transform: translateY(-2px) scale(0.98); }
 
-/* Brand mascot on the title screen + scanline atmosphere */
+/* Title screen gets the same cinematic treatment */
+#home-screen {
+  background:
+    radial-gradient(ellipse at 50% 34%, rgba(3, 6, 12, 0.18), rgba(3, 6, 12, 0.88) 78%),
+    url('/lobby/bg_dili.jpg') center 30% / cover no-repeat #04070f;
+}
 .home-mascot {
   width: 64px; height: 64px; image-rendering: pixelated;
   margin: 0 auto 6px; display: block;
@@ -1523,10 +1572,18 @@ body.in-lobby #skip-tutorial-btn {
 }
 
 @media (max-height: 520px) {
-  .dock-card { width: 78px; padding: 8px 4px 7px; font-size: 10px; }
-  .dock-card svg { width: 17px; height: 17px; }
-  .lobby-dock { gap: 7px; padding: 6px 10px 8px; }
-  .lobby-avatar { width: 22px; height: 22px; }
-  .lobby-logo-chip { width: 24px; height: 24px; }
+  .lobby-top { margin: 6px 8px 0; padding: 5px 10px; }
+  .lobby-avatar { width: 32px; height: 32px; }
+  #lobby-player-name { font-size: 13px; max-width: 110px; }
+  .lobby-logo { font-size: 18px; }
+  .cur { font-size: 12px; gap: 4px; }
+  .lobby-currencies { gap: 8px; }
+  .dock-card { min-width: 92px; padding: 8px 6px 7px; }
+  .dock-card svg { width: 20px; height: 20px; }
+  .dock-label { font-size: 13px; }
+  .dock-sub { font-size: 8.5px; }
+  .dock-card.cta { min-width: 108px; }
+  .dock-card.cta .dock-label { font-size: 15px; }
+  .lobby-panel { margin: 6px auto; padding: 10px 14px 12px; }
   .home-mascot { width: 44px; height: 44px; }
 }

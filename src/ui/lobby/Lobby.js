@@ -46,7 +46,7 @@ export class Lobby {
     this.selectedChar = this._loadChar();
     this.createDOM();
     this.bindNav();
-    DB.onChange(() => this.refreshHeader());
+    DB.onChange(() => this.refreshChrome());
   }
 
   _loadChar() {
@@ -61,26 +61,44 @@ export class Lobby {
     this.selectedChar = characterById(id).id;
     try { localStorage.setItem('df_character', this.selectedChar); } catch { /* ignore */ }
     DB.setSetting('character', this.selectedChar);
+    if (this.el) this.refreshChrome(); // backdrop + avatar follow the pick
   }
 
   createDOM() {
     const base = import.meta.env.BASE_URL;
     this.el = document.createElement('div');
     this.el.id = 'lobby';
-    // fusion_06: frosted-glass top bar + fanned glass card dock at the bottom.
-    const DOCK = NAV.filter((n) => ['play', 'levels', 'fighters', 'social', 'profile'].includes(n.id));
-    const TILT = [-7, -3.5, 0, 3.5, 7];
+    // Reference layout: cinematic full-body backdrop (swaps with the
+    // selected fighter), floating glass top bar, fanned glass card dock.
+    const DOCK = [
+      { id: 'social',   label: 'SOCIAL',   icon: NAV.find((n) => n.id === 'social').icon },
+      { id: 'levels',   label: 'LEVELS',   icon: NAV.find((n) => n.id === 'levels').icon },
+      { id: 'play',     label: 'PLAY',     icon: 'M6 4l7 6-7 6V4zm9 2l7 6-7 6V6z' },
+      { id: 'fighters', label: 'FIGHTERS', icon: NAV.find((n) => n.id === 'fighters').icon },
+      { id: 'profile',  label: 'PROFILE',  icon: NAV.find((n) => n.id === 'profile').icon },
+    ];
+    const TILT = [-6, -3, 0, 3, 6];
     this.el.innerHTML = `
+      <div class="lobby-bg" id="lobby-bg" aria-hidden="true"></div>
       <header class="lobby-top">
-        <div class="lobby-brand">
-          <img class="lobby-logo-chip" src="${base}brand/logo_blue.png" alt="" draggable="false" />
-          DILI<span>FIGHTER</span><em>v${GAME_CONFIG.VERSION}</em>
+        <div class="lobby-id">
+          <img class="lobby-avatar" id="lobby-avatar" src="${base}brand/dili_happy.gif" alt="" draggable="false" />
+          <div class="lobby-id-text">
+            <span id="lobby-player-name">Player</span>
+            <span id="lobby-player-lvl" class="lobby-lvl">LVL 1</span>
+          </div>
         </div>
-        <div class="lobby-player">
-          <img class="lobby-avatar" src="${base}brand/dili_happy.gif" alt="" draggable="false" />
-          <span id="lobby-player-name">Player</span>
-          <span id="lobby-player-badge" class="lobby-badge">GUEST</span>
-          <span class="lobby-coins" id="lobby-coins" title="Coins">0</span>
+        <div class="lobby-logo">DILI<span>FIGHTER</span></div>
+        <div class="lobby-currencies">
+          <span class="cur cur-coins" title="Coins"><b id="lobby-coins">0</b></span>
+          <span class="cur cur-stars" title="Total stars">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 7-7 13L5 9l7-7z" fill="#38bdf8"/></svg>
+            <b id="lobby-stars">0</b>
+          </span>
+          <span class="cur cur-prog" title="Campaign progress">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" fill="#4ade80"/></svg>
+            <b id="lobby-prog">0/8</b>
+          </span>
           <button class="lobby-pill" data-panel="settings" type="button" aria-label="Settings">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8.6 5.2.1-1.7-.1-1.7 2-1.5-1.9-3.3-2.4.9a8 8 0 0 0-2.9-1.7L15 2h-3.8l-.4 2.7a8 8 0 0 0-2.9 1.7l-2.4-.9L3.6 8.8l2 1.5-.2 1.7.2 1.7-2 1.5 1.9 3.3 2.4-.9a8 8 0 0 0 2.9 1.7L11.2 22h3.8l.4-2.7a8 8 0 0 0 2.9-1.7l2.4.9 1.9-3.3-2-1.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
           </button>
@@ -92,20 +110,33 @@ export class Lobby {
       <main class="lobby-panel" id="lobby-panel"></main>
       <nav class="lobby-dock" aria-label="Sections">
         ${DOCK.map((n, i) => `
-          <button class="dock-card ${n.id === 'play' ? 'active' : ''}" data-panel="${n.id}" type="button" style="--tilt:${TILT[i]}deg">
+          <button class="dock-card ${n.id === 'play' ? 'cta' : ''}" data-panel="${n.id}" type="button" style="--tilt:${TILT[i]}deg">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${n.icon}" fill="currentColor"/></svg>
-            <span>${n.label}</span>
+            <span class="dock-label">${n.label}</span>
+            <span class="dock-sub" id="dock-sub-${n.id}"></span>
           </button>`).join('')}
       </nav>
     `;
     document.body.appendChild(this.el);
     this.panelEl = this.el.querySelector('#lobby-panel');
+    this.bgEl = this.el.querySelector('#lobby-bg');
   }
 
   bindNav() {
     this.el.querySelectorAll('[data-panel]').forEach((btn) => {
-      if (btn.classList.contains('dock-card') || btn.classList.contains('lobby-pill')) {
+      if (btn.classList.contains('lobby-pill')) {
         btn.addEventListener('click', () => this.setPanel(btn.dataset.panel));
+        return;
+      }
+      if (btn.classList.contains('dock-card')) {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.panel === 'play') {
+            // PLAY is the CTA card: straight into a quick duel.
+            this.onQuickMatch('medium', this.selectedChar);
+          } else {
+            this.setPanel(btn.dataset.panel);
+          }
+        });
       }
     });
   }
@@ -119,7 +150,7 @@ export class Lobby {
 
   show() {
     this.el.classList.add('active');
-    this.refreshHeader();
+    this.refreshChrome();
     this.renderPanel();
   }
 
@@ -127,16 +158,47 @@ export class Lobby {
     this.el.classList.remove('active');
   }
 
-  refreshHeader() {
+  /** Top bar currencies/id + backdrop + dock sublabels (reference layout). */
+  refreshChrome() {
+    const base = import.meta.env.BASE_URL;
+    const char = characterById(this.selectedChar);
+    const p = DB.data.profile;
+    const lvl = DB.data.progress.highest_level;
+
     this.el.querySelector('#lobby-player-name').textContent = DB.displayName();
-    const badge = this.el.querySelector('#lobby-player-badge');
-    const guest = DB.data.profile.is_guest;
-    badge.textContent = guest ? 'GUEST' : 'FIGHTER';
-    badge.classList.toggle('guest', guest);
-    this.el.querySelector('#lobby-coins').textContent = DB.data.profile.coins;
+    this.el.querySelector('#lobby-player-lvl').textContent = `LVL ${lvl}`;
+    const avatar = this.el.querySelector('#lobby-avatar');
+    const src = char.portrait ? `${base}${char.portrait}` : `${base}brand/dili_happy.gif`;
+    if (avatar.dataset.src !== src) { avatar.dataset.src = src; avatar.src = src; }
+
+    this.el.querySelector('#lobby-coins').textContent = p.coins;
+    const totalStars = CAMPAIGN.reduce((a, c) => a + DB.starsOf(c.id), 0);
+    this.el.querySelector('#lobby-stars').textContent = totalStars;
+    const cleared = CAMPAIGN.filter((c) => DB.starsOf(c.id) > 0).length;
+    this.el.querySelector('#lobby-prog').textContent = `${cleared}/${CAMPAIGN.length}`;
+
+    // Cinematic backdrop follows the selected fighter.
+    this.bgEl.style.backgroundImage = `url('${base}lobby/bg_${char.id}.jpg')`;
+
+    // Dock sublabels
+    const unlockedCount = ROSTER.filter((c) => !c.comingSoon && isUnlocked(c, (id) => DB.starsOf(id))).length;
+    const playable = ROSTER.filter((c) => !c.comingSoon).length;
+    const subs = {
+      play: 'QUICK DUEL',
+      levels: `CAMPAIGN ${cleared}-${cleared + 1 > CAMPAIGN.length ? CAMPAIGN.length : cleared + 1}`,
+      fighters: `ROSTER ${unlockedCount}/${playable}`,
+      social: p.is_guest ? 'GO ACCOUNT' : 'FRIENDS & RANKS',
+      profile: `${p.is_guest ? 'GUEST' : 'FIGHTER'} · LVL ${lvl}`,
+    };
+    for (const [id, text] of Object.entries(subs)) {
+      const el = this.el.querySelector(`#dock-sub-${id}`);
+      if (el) el.textContent = text;
+    }
   }
 
   renderPanel() {
+    // PLAY shows the bare cinematic backdrop (dock CTA starts the duel).
+    this.panelEl.classList.toggle('empty', this.panel === 'play');
     const fn = {
       play: this.panelPlay,
       levels: this.panelLevels,
@@ -152,46 +214,8 @@ export class Lobby {
   // ------------------------------------------------------------ PLAY
 
   panelPlay() {
-    const cleared = CAMPAIGN.filter((c) => DB.starsOf(c.id) > 0).length;
-    const char = characterById(this.selectedChar);
-    this.panelEl.innerHTML = `
-      <h2 class="panel-title">CHOOSE YOUR BATTLE</h2>
-      <div class="mode-grid">
-        <button class="mode-card" id="mode-quick" type="button">
-          <div class="mode-name">QUICK MATCH</div>
-          <div class="mode-desc">One fair duel against the AI. Fight as ${char.name}.</div>
-          <div class="mode-cta">FIGHT</div>
-        </button>
-
-        <button class="mode-card" id="mode-campaign" type="button">
-          <div class="mode-name">CAMPAIGN</div>
-          <div class="mode-desc">Eight trials, eight versions of Tsunami. Earn stars and unlock fighters.</div>
-          <div class="mode-progress">${cleared}/${CAMPAIGN.length} cleared</div>
-          <div class="mode-cta">CONTINUE</div>
-        </button>
-
-        <div class="mode-card locked" aria-disabled="true">
-          <div class="mode-name">MULTIPLAYER</div>
-          <div class="mode-desc">Fight players from around the world in real time.</div>
-          <div class="mode-soon">COMING SOON</div>
-        </div>
-
-        <div class="mode-card locked" aria-disabled="true">
-          <div class="mode-name">TOURNAMENT</div>
-          <div class="mode-desc">Climb a weekend bracket for exclusive rewards.</div>
-          <div class="mode-soon">COMING SOON</div>
-        </div>
-      </div>
-    `;
-
-    // Difficulty is fixed by design: quick match is always a fair MEDIUM
-    // duel; campaign levels carry their own difficulty.
-    this.panelEl.querySelector('#mode-quick').addEventListener('click', () => {
-      this.onQuickMatch('medium', this.selectedChar);
-    });
-    this.panelEl.querySelector('#mode-campaign').addEventListener('click', () => {
-      this.setPanel('levels');
-    });
+    // The backdrop IS the play panel; nothing renders in the sheet.
+    this.panelEl.innerHTML = '';
   }
 
   // ------------------------------------------------------------ LEVELS
@@ -489,7 +513,7 @@ export class Lobby {
         DB.data.profile.nickname = res.nickname;
         DB._persist();
         msg.textContent = 'Saved.';
-        this.refreshHeader();
+        this.refreshChrome();
       } else {
         msg.textContent = res.error;
       }
