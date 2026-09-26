@@ -108,7 +108,7 @@ function initGame() {
   }
 
   function onMatchEnd(r) {
-    DB.reportMatch(r).then((reward) => {
+    const finish = (reward) => {
       resultScreen.show({
         playerWon: r.playerWon,
         stars: reward.stars,
@@ -118,6 +118,11 @@ function initGame() {
         levelId: r.levelId,
       });
       setInGameUI(false);
+    };
+    // Result must ALWAYS appear, even if the cloud report fails.
+    DB.reportMatch(r).then(finish).catch((err) => {
+      console.warn('reportMatch failed, showing result anyway', err);
+      finish({ stars: r.playerWon ? 1 : 0, coins: 0, unlockedNext: false });
     });
   }
 

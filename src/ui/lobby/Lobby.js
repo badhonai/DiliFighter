@@ -200,6 +200,11 @@ export class Lobby {
   }
 
   show() {
+    // The lobby always re-enters as the clean reference layout; section
+    // pages are separate full-screen overlays, never a persisted sheet.
+    this.panel = 'play';
+    this.el.querySelectorAll('.dock-card').forEach((b) =>
+      b.classList.toggle('active', b.dataset.panel === 'play'));
     this.el.classList.add('active');
     this.refreshChrome();
     this.renderPanel();
