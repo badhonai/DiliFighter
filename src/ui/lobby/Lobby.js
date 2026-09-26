@@ -31,6 +31,10 @@ const DIFF_INFO = {
 };
 
 export class Lobby {
+  /** Render host: lobby sheet while idle, full-page sheet when a section page is open. */
+  get panelEl() {
+    return this.fpEl && this.fpEl.classList.contains('active') ? this.fpBody : this._panelEl;
+  }
   /**
    * @param {{onQuickMatch:(diff:string, charId:string)=>void,
    *          onLevel:(level:object, charId:string)=>void,
@@ -118,8 +122,21 @@ export class Lobby {
       </nav>
     `;
     document.body.appendChild(this.el);
-    this.panelEl = this.el.querySelector('#lobby-panel');
+    this._panelEl = this.el.querySelector('#lobby-panel');
     this.bgEl = this.el.querySelector('#lobby-bg');
+
+    // Full-screen section pages (social/levels/profile/settings/graphics):
+    // same immersive treatment as the fighters page — only back-to-lobby.
+    this.fpEl = document.createElement('div');
+    this.fpEl.id = 'full-page';
+    this.fpEl.innerHTML = `
+      <div class="lobby-bg" id="fp-bg" aria-hidden="true"></div>
+      <button id="fp-back" type="button">&larr; LOBBY</button>
+      <div class="fp-sheet"><div id="fp-body"></div></div>
+    `;
+    document.body.appendChild(this.fpEl);
+    this.fpBody = this.fpEl.querySelector('#fp-body');
+    this.fpEl.querySelector('#fp-back').addEventListener('click', () => this.setPanel('play'));
 
     // Immersive fighter showcase page: no nav chrome, only back-to-lobby.
     this.cvEl = document.createElement('div');
@@ -148,8 +165,6 @@ export class Lobby {
           if (btn.dataset.panel === 'play') {
             // PLAY is the CTA card: straight into a quick duel.
             this.onQuickMatch('medium', this.selectedChar);
-          } else if (btn.dataset.panel === 'fighters') {
-            this.openCharView();
           } else {
             this.setPanel(btn.dataset.panel);
           }
@@ -162,6 +177,23 @@ export class Lobby {
     this.panel = id;
     this.el.querySelectorAll('.dock-card').forEach((b) =>
       b.classList.toggle('active', b.dataset.panel === id));
+    if (id === 'play') {
+      this.fpEl.classList.remove('active');
+      this.cvEl.classList.remove('active');
+      this.renderPanel();
+      return;
+    }
+    if (id === 'fighters') {
+      this.fpEl.classList.remove('active');
+      this.openCharView();
+      return;
+    }
+    // Full-screen immersive section page with only a back-to-lobby button.
+    this.cvEl.classList.remove('active');
+    const base = import.meta.env.BASE_URL;
+    this.fpEl.querySelector('#fp-bg').style.backgroundImage =
+      `url("${base}lobby/bg_${this.selectedChar}.jpg")`;
+    this.fpEl.classList.add('active');
     this.renderPanel();
   }
 
@@ -173,6 +205,8 @@ export class Lobby {
 
   hide() {
     this.el.classList.remove('active');
+    this.fpEl.classList.remove('active');
+    this.cvEl.classList.remove('active');
   }
 
   /** Top bar currencies/id + backdrop + dock sublabels (reference layout). */
