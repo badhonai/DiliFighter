@@ -120,6 +120,21 @@ export class Lobby {
     document.body.appendChild(this.el);
     this.panelEl = this.el.querySelector('#lobby-panel');
     this.bgEl = this.el.querySelector('#lobby-bg');
+
+    // Immersive fighter showcase page: no nav chrome, only back-to-lobby.
+    this.cvEl = document.createElement('div');
+    this.cvEl.id = 'char-view';
+    this.cvEl.innerHTML = `
+      <div class="lobby-bg" id="cv-bg" aria-hidden="true"></div>
+      <button id="cv-back" type="button">&larr; LOBBY</button>
+      <div class="cv-caption" aria-live="polite">
+        <div class="cv-name" id="cv-name"></div>
+        <div class="cv-sub" id="cv-sub"></div>
+      </div>
+      <div class="cv-body" id="cv-body"></div>
+    `;
+    document.body.appendChild(this.cvEl);
+    this.cvEl.querySelector('#cv-back').addEventListener('click', () => this.closeCharView());
   }
 
   bindNav() {
@@ -133,6 +148,8 @@ export class Lobby {
           if (btn.dataset.panel === 'play') {
             // PLAY is the CTA card: straight into a quick duel.
             this.onQuickMatch('medium', this.selectedChar);
+          } else if (btn.dataset.panel === 'fighters') {
+            this.openCharView();
           } else {
             this.setPanel(btn.dataset.panel);
           }
@@ -251,33 +268,47 @@ export class Lobby {
   }
 
   // ------------------------------------------------------------ FIGHTERS
+  // Immersive full-screen showcase: full-body art, back-to-lobby top left,
+  // portrait chips at the bottom to switch fighters. No other navigation.
+
+  openCharView() {
+    this.cvEl.classList.add('active');
+    this.panelFighters();
+  }
+
+  closeCharView() {
+    this.cvEl.classList.remove('active');
+  }
 
   panelFighters() {
     const base = import.meta.env.BASE_URL;
     const picked = characterById(this.selectedChar);
-    this.panelEl.innerHTML = `
-      <h2 class="panel-title">CHOOSE YOUR FIGHTER</h2>
-      <p class="panel-sub">FIGHTING AS: <strong style="color:${picked.accent}">${picked.name}</strong> — tap a portrait to switch.</p>
-      <div class="roster-grid">
+    const bg = this.cvEl.querySelector('#cv-bg');
+    bg.style.backgroundImage = `url("${base}lobby/bg_${picked.id}.jpg")`;
+    const nameEl = this.cvEl.querySelector('#cv-name');
+    nameEl.textContent = picked.name;
+    nameEl.style.color = picked.accent;
+    nameEl.style.textShadow = `0 0 24px ${picked.accent}55, 0 3px 0 rgba(2, 8, 16, 0.9)`;
+    this.cvEl.querySelector('#cv-sub').textContent = `${picked.subtitle} · ${picked.style}`;
+    this.cvEl.querySelector('#cv-body').innerHTML = `
+      <p class="panel-sub cv-fighting">FIGHTING AS: <strong style="color:${picked.accent}">${picked.name}</strong> — tap a portrait to switch.</p>
+      <div class="roster-grid cv-grid">
         ${ROSTER.map((c) => {
           const unlocked = isUnlocked(c, (id) => DB.starsOf(id));
           const selected = this.selectedChar === c.id;
           return `
-          <button type="button" class="roster-card ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'}" data-char="${c.id}" ${unlocked ? '' : 'aria-disabled="true"'}>
+          <button type="button" class="roster-card cv-chip ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'}" data-char="${c.id}" ${unlocked ? '' : 'aria-disabled="true"'}>
             <div class="roster-portrait" style="--accent:${c.accent}">
               ${c.portrait ? `<img src="${base}${c.portrait}" alt="" draggable="false" />` : ''}
-              ${!unlocked && !c.comingSoon ? `<div class="roster-lock">CLEAR LEVEL ${c.unlockLevel}</div>` : ''}
-              ${c.comingSoon ? '<div class="roster-lock">COMING SOON</div>' : ''}
+              ${!unlocked && !c.comingSoon ? `<div class="roster-lock">LV ${c.unlockLevel}</div>` : ''}
+              ${c.comingSoon ? '<div class="roster-lock">SOON</div>' : ''}
             </div>
             <div class="roster-name" style="color:${unlocked ? c.accent : '#51617d'}">${c.name}</div>
-            <div class="roster-sub">${c.subtitle}</div>
-            <div class="roster-style">${c.style}</div>
-            ${unlocked ? `<div class="roster-pick">${selected ? 'SELECTED' : 'SELECT'}</div>` : ''}
           </button>`;
         }).join('')}
       </div>
     `;
-    this.panelEl.querySelectorAll('.roster-card').forEach((card) => {
+    this.cvEl.querySelectorAll('.cv-chip').forEach((card) => {
       card.addEventListener('click', () => {
         const c = characterById(card.dataset.char);
         if (card.classList.contains('locked') || c.comingSoon) return;
