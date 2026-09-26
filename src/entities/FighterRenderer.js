@@ -1,13 +1,14 @@
 import { GAME_CONFIG } from '../config.js';
 import { spriteEntry } from './SpriteStore.js';
+import { characterById } from '../data/roster.js';
 
 /**
  * FighterRenderer — sprite-only body renderer.
  * The AI sprite frames ARE the fighters now (permanent direction); the old
  * vector puppet was removed. Ground shadow + shadow aura stay vector so
  * they react to gameplay; the body, normal or shadow form, is a sprite.
- * If a character's frames ever fail to load we simply draw no body rather
- * than resurrecting legacy art.
+ * If frames are ever missing we draw a minimal accent silhouette instead —
+ * a fighter must never be invisible.
  */
 export class FighterRenderer {
   constructor(fighter) {
@@ -69,7 +70,12 @@ export class FighterRenderer {
 
   renderFighterBody(ctx, f, isShadow) {
     const entry = spriteEntry(f.charId);
-    if (!entry || !entry.ready) return; // frames missing: no legacy fallback
+    if (!entry || !entry.ready) {
+      // Frames still loading or failed: draw a clean silhouette so a
+      // fighter is NEVER invisible (no legacy vector puppet returns).
+      this.renderFallbackBody(ctx, f, isShadow);
+      return;
+    }
     const sp = entry.poses.get(this.poseForSprite(f)) || entry.poses.get('idle');
     if (!sp) return;
     const frame = isShadow && sp.shadow ? sp.shadow : sp.canvas;
@@ -114,6 +120,31 @@ export class FighterRenderer {
     ctx.rotate(rot + lean);
     ctx.scale(1, sy);
     ctx.drawImage(frame, -w / 2, -H, w, H);
+    ctx.restore();
+  }
+
+  /** Minimal accent silhouette used only while/frames are unavailable. */
+  renderFallbackBody(ctx, f, isShadow) {
+    const accent = (characterById(f.charId) || {}).accent || '#38bdf8';
+    const dead = f.state === 'KNOCKDOWN' || f.state === 'DEAD';
+    ctx.save();
+    if (dead) { ctx.rotate(-1.45); ctx.translate(0, 6); }
+    const body = isShadow ? '#0a0f17' : '#101826';
+    ctx.fillStyle = body;
+    ctx.strokeStyle = isShadow ? 'rgba(0, 240, 255, 0.8)' : accent;
+    ctx.lineWidth = 2;
+    const part = (x, y, w, h, r) => {
+      FighterRenderer.rr
+        ? FighterRenderer.rr(ctx, x, y, w, h, r)
+        : ctx.rect(x, y, w, h);
+      ctx.fill(); ctx.stroke();
+    };
+    part(-15, -118, 30, 74, 10);            // torso
+    ctx.beginPath(); ctx.arc(0, -132, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // head
+    part(-14, -46, 11, 46, 5);              // legs
+    part(3, -46, 11, 46, 5);
+    part(-26, -112, 9, 40, 4);              // arms
+    part(17, -112, 9, 40, 4);
     ctx.restore();
   }
 
