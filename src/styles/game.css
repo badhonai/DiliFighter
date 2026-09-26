@@ -52,9 +52,9 @@ html, body {
 
 
 
-/* Settings gear — the ONLY utility icon left in the top-left column.
-   Controls guide, music and fullscreen all live inside its panel. */
-#settings-btn {
+/* In-fight icon column: exactly TWO icons — back-to-lobby and pause.
+   They exist only during a match (body.in-match). */
+#back-lobby-btn {
   position: fixed;
   top: 8px;
   left: 8px;
@@ -66,21 +66,26 @@ html, body {
   color: #7dd3fc;
   cursor: pointer;
   z-index: 100;
-  display: flex;
+  display: none;
   justify-content: center;
   align-items: center;
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
-#settings-btn:hover {
+#back-lobby-btn:hover {
   background: rgba(0, 240, 255, 0.15);
 }
 
-#settings-btn svg {
+#back-lobby-btn svg {
   width: 22px;
   height: 22px;
   display: block;
 }
+
+body.in-match #back-lobby-btn { display: flex; }
+
+.pause-settings { margin-top: 16px; max-width: 320px; margin-left: auto; margin-right: auto; }
+.pause-settings .settings-row { padding: 9px 14px; margin: 6px 0; }
 
 /* Help Guide Modal */
 #help-modal {
@@ -540,7 +545,7 @@ html, body {
   50%      { transform: translateX(-50%) scale(1.06); box-shadow: 0 0 32px rgba(251, 191, 36, 0.75); }
 }
 
-/* Pause/play — second icon in the top-left column, under the gear */
+/* Pause/play — second icon in the top-left column, under back */
 #pause-toggle-btn {
   position: fixed;
   top: 58px;
@@ -551,13 +556,15 @@ html, body {
   border: 1px solid rgba(0, 240, 255, 0.35);
   border-radius: 9px;
   color: #7dd3fc;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 60;
   cursor: pointer;
   pointer-events: auto;
 }
+
+body.in-match #pause-toggle-btn { display: flex; }
 
 #pause-toggle-btn:hover {
   background: rgba(0, 240, 255, 0.15);
@@ -762,10 +769,7 @@ html, body {
   --df-dim: #8fa3bf;
 }
 
-/* Hide the in-fight utility icons while a DOM screen (lobby/auth/results)
-   is on top — they belong to the arena, not the menus. */
-body.in-lobby #settings-btn,
-body.in-lobby #pause-toggle-btn,
+/* Hide the tutorial skip while a DOM screen (lobby/auth/results) is up. */
 body.in-lobby #skip-tutorial-btn {
   display: none;
 }

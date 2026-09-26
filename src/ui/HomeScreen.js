@@ -7,7 +7,7 @@
  * Where orientation locking is impossible (e.g. iOS Safari), a minimal
  * rotate hint appears only as a fallback — and only AFTER the tap.
  *
- * Flow: PLAY NOW -> fullscreen + landscape lock -> DifficultySelect.
+ * Flow: PLAY -> fullscreen + landscape lock -> the lobby hub.
  */
 export class HomeScreen {
   /**
@@ -42,10 +42,7 @@ export class HomeScreen {
         <div class="home-actions">
           <button id="play-now-btn" class="btn-action btn-hero" type="button">
             <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-            PLAY NOW
-          </button>
-          <button id="home-lobby-btn" class="btn-action btn-hero-ghost" type="button">
-            LOBBY
+            PLAY
           </button>
         </div>
 
@@ -70,8 +67,6 @@ export class HomeScreen {
   bindEvents() {
     this.el.querySelector('#play-now-btn').addEventListener('click', () => this.leave('play'));
     this.el.querySelector('#home-help-btn').addEventListener('click', () => this.onHelp());
-    const lobbyBtn = this.el.querySelector('#home-lobby-btn');
-    if (lobbyBtn) lobbyBtn.addEventListener('click', () => this.leave('lobby'));
 
     // Fallback path: once the player physically rotates into landscape we
     // continue automatically — no second tap needed.

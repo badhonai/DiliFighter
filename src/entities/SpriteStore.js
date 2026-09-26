@@ -34,8 +34,7 @@ export async function loadCharacterSprites(charId, base = '') {
         if (processed) entry.poses.set(pose, processed);
       } catch { /* keep vector fallback for this pose */ }
       resolve();
-    };
-    img.onerror = resolve; // pose missing -> vector fallback
+    };    img.onerror = resolve; // pose missing -> vector fallback
     img.src = `${base}sprites/${charId}/${pose}.jpg`;
   })));
 
@@ -77,6 +76,32 @@ function processFrame(img) {
   const out = document.createElement('canvas');
   out.width = maxX - minX + 1;
   out.height = maxY - minY + 1;
-  out.getContext('2d').putImageData(data, -minX, -minY);
-  return { canvas: out, w: out.width, h: out.height };
+  const octx = out.getContext('2d');
+  octx.putImageData(data, -minX, -minY);
+
+  // Shadow-form variant: same silhouette filled void-dark with a faint
+  // cyan inner rim, so shadow mode matches the sprite art direction.
+  const shadow = document.createElement('canvas');
+  shadow.width = out.width;
+  shadow.height = out.height;
+  const sctx = shadow.getContext('2d', { willReadFrequently: true });
+  sctx.drawImage(out, 0, 0);
+  const sd = sctx.getImageData(0, 0, shadow.width, shadow.height);
+  const sp = sd.data;
+  for (let i = 0; i < sp.length; i += 4) {
+    const a = sp[i + 3];
+    if (!a) continue;
+    // edge pixel (transparent neighbour) gets the cyan rim
+    const x = (i / 4) % shadow.width;
+    const y = ((i / 4) / shadow.width) | 0;
+    const edge =
+      x === 0 || y === 0 || x === shadow.width - 1 || y === shadow.height - 1 ||
+      sd.data[i - 4 + 3] < 40 || sd.data[i + 4 + 3] < 40 ||
+      sd.data[i - shadow.width * 4 + 3] < 40 || sd.data[i + shadow.width * 4 + 3] < 40;
+    if (edge) { sp[i] = 0; sp[i + 1] = 240; sp[i + 2] = 255; }
+    else { sp[i] = 10; sp[i + 1] = 15; sp[i + 2] = 23; }
+  }
+  sctx.putImageData(sd, 0, 0);
+
+  return { canvas: out, shadow, w: out.width, h: out.height };
 }

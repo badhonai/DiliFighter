@@ -140,6 +140,7 @@ export class Engine {
    */
   beginMatch(difficulty = null, opts = {}) {
     if (difficulty) Difficulty.set(difficulty);
+    if (typeof document !== 'undefined') document.body.classList.add('in-match');
     if (opts.playerCharacter && opts.playerCharacter !== this.playerCharacter) {
       this.configureFighters(opts.playerCharacter);
     }
@@ -165,6 +166,7 @@ export class Engine {
    * their idle poses, combat state cleared, no HUD.
    */
   toAttract() {
+    if (typeof document !== 'undefined') document.body.classList.remove('in-match');
     if (this.pauseMenu.isPaused) this.pauseMenu.togglePause(false);
     clearTimeout(this.matchEndTimer);
     this.matchState = 'HOME';

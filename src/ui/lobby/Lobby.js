@@ -146,11 +146,7 @@ export class Lobby {
       <div class="mode-grid">
         <button class="mode-card" id="mode-quick" type="button">
           <div class="mode-name">QUICK MATCH</div>
-          <div class="mode-desc">One duel against the AI. Pick your difficulty and fight as ${char.name}.</div>
-          <div class="quick-diff-row">
-            ${Object.keys(DIFF_INFO).map((d) => `
-              <span class="quick-diff ${d === this.quickDiff ? 'on' : ''}" data-diff="${d}">${DIFF_INFO[d].name}</span>`).join('')}
-          </div>
+          <div class="mode-desc">One fair duel against the AI. Fight as ${char.name}.</div>
           <div class="mode-cta">FIGHT</div>
         </button>
 
@@ -175,17 +171,10 @@ export class Lobby {
       </div>
     `;
 
-    this.panelEl.querySelectorAll('.quick-diff').forEach((chip) => {
-      chip.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.quickDiff = chip.dataset.diff;
-        Difficulty.set(this.quickDiff);
-        this.panelEl.querySelectorAll('.quick-diff').forEach((c) =>
-          c.classList.toggle('on', c.dataset.diff === this.quickDiff));
-      });
-    });
+    // Difficulty is fixed by design: quick match is always a fair MEDIUM
+    // duel; campaign levels carry their own difficulty.
     this.panelEl.querySelector('#mode-quick').addEventListener('click', () => {
-      this.onQuickMatch(this.quickDiff, this.selectedChar);
+      this.onQuickMatch('medium', this.selectedChar);
     });
     this.panelEl.querySelector('#mode-campaign').addEventListener('click', () => {
       this.setPanel('levels');

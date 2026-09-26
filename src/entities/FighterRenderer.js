@@ -64,9 +64,9 @@ export class FighterRenderer {
   }
 
   renderFighterBody(ctx, f, isShadow) {
-    // Sprite-sheet trial: AI frames replace the vector body when loaded.
-    // Shadow form keeps the vector silhouette (it gets tinted/aura'd).
-    if (!isShadow && GAME_CONFIG.SPRITES && this.tryRenderSprite(ctx, f)) return;
+    // AI sprite frames replace the vector body once loaded — including
+    // shadow form, which uses the pre-tinted silhouette variant.
+    if (GAME_CONFIG.SPRITES && this.tryRenderSprite(ctx, f, isShadow)) return;
 
     // Determine pose parameters based on state and current animation progress
     const pose = this.calculatePose(f);
@@ -148,11 +148,12 @@ export class FighterRenderer {
   }
 
   /** Draw the AI sprite frame for the current state. False = vector fallback. */
-  tryRenderSprite(ctx, f) {
+  tryRenderSprite(ctx, f, isShadow = false) {
     const entry = spriteEntry(f.charId);
     if (!entry || !entry.ready) return false;
     const sp = entry.poses.get(this.poseForSprite(f)) || entry.poses.get('idle');
     if (!sp) return false;
+    const frame = isShadow && sp.shadow ? sp.shadow : sp.canvas;
 
     const H = GAME_CONFIG.SPRITE_HEIGHT;
     const w = sp.w * (H / sp.h);
@@ -186,10 +187,14 @@ export class FighterRenderer {
     }
 
     ctx.save();
+    if (isShadow) {
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = 10;
+    }
     ctx.translate(0, bob);
     ctx.rotate(rot + lean);
     ctx.scale(1, sy);
-    ctx.drawImage(sp.canvas, -w / 2, -H, w, H);
+    ctx.drawImage(frame, -w / 2, -H, w, H);
     ctx.restore();
     return true;
   }

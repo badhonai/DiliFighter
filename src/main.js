@@ -10,8 +10,6 @@ import { Engine } from './core/Engine.js';
 import { GraphicsQuality } from './core/GraphicsQuality.js';
 import { HomeScreen } from './ui/HomeScreen.js';
 import { HelpMenu } from './ui/HelpMenu.js';
-import { SettingsMenu } from './ui/SettingsMenu.js';
-import { DifficultySelect } from './ui/DifficultySelect.js';
 import { AuthScreen } from './ui/lobby/AuthScreen.js';
 import { Lobby } from './ui/lobby/Lobby.js';
 import { ResultScreen } from './ui/lobby/ResultScreen.js';
@@ -25,7 +23,6 @@ function initGame() {
 
   const engine = new Engine(canvas, { autoStart: false });
   const helpMenu = new HelpMenu(engine);
-  new SettingsMenu(engine, helpMenu);
 
   // ---------- session helpers ----------
 
@@ -159,31 +156,21 @@ function initGame() {
     },
   });
 
-  // ---------- title / quick-play path ----------
-
-  const difficultySelect = new DifficultySelect((difficulty) => {
-    const charId = selectedCharacter();
-    lastMatch = {
-      diff: difficulty, level: null, charId,
-      opts: { tag: 'quick', playerCharacter: charId, onMatchEnd },
-    };
-    startMatch(difficulty, lastMatch.opts);
-  });
+  // ---------- title: PLAY lands in the lobby, the single hub ----------
 
   const home = new HomeScreen({
     onPlay: async () => {
       const ok = await ensureSession();
       if (!ok) return; // back-to-title was pressed
-      difficultySelect.show();
-    },
-    onLobby: async () => {
-      const ok = await ensureSession();
-      if (!ok) return;
       backToLobby();
     },
     onHelp: () => helpMenu.open(),
     version: GAME_CONFIG.VERSION,
   });
+
+  // In-fight utilities live on the pause menu + a lobby-back icon.
+  engine.pauseMenu.helpMenu = helpMenu;
+  engine.exitToLobby = backToLobby;
 
   engine.run();
 
