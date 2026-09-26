@@ -91,8 +91,8 @@ export class Lobby {
             <span id="lobby-player-name">Player</span>
             <span id="lobby-player-lvl" class="lobby-lvl">LVL 1</span>
           </div>
+          <div class="lobby-logo">DILI<span>FIGHTER</span></div>
         </div>
-        <div class="lobby-logo">DILI<span>FIGHTER</span></div>
         <div class="lobby-currencies">
           <span class="cur cur-coins" title="Coins"><b id="lobby-coins">0</b></span>
           <span class="cur cur-stars" title="Total stars">
@@ -193,6 +193,8 @@ export class Lobby {
     const base = import.meta.env.BASE_URL;
     this.fpEl.querySelector('#fp-bg').style.backgroundImage =
       `url("${base}lobby/bg_${this.selectedChar}.jpg")`;
+    // Profile is compact by design: never scroll it.
+    this.fpEl.querySelector('.fp-sheet').classList.toggle('no-scroll', id === 'profile');
     this.fpEl.classList.add('active');
     this.renderPanel();
   }
