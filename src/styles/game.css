@@ -1018,6 +1018,220 @@ body.in-lobby #skip-tutorial-btn {
 }
 .lobby-panel.empty { display: none; }
 
+/* ============ organized panel content system ============ */
+.panel-title {
+  font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 22px;
+  letter-spacing: 3px; color: #f2f7ff; margin: 2px 0 6px;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+.panel-title em {
+  font-style: normal; font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; color: #64748b; margin-left: 8px;
+}
+.panel-sub {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px;
+  color: #8fa3bf; margin: 0 0 12px;
+}
+
+/* roster */
+.roster-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 12px;
+}
+.roster-card {
+  appearance: none; font: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 10px 12px; border-radius: 12px;
+  background: rgba(8, 12, 20, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.roster-card:hover { transform: translateY(-3px); border-color: rgba(56, 189, 248, 0.45); }
+.roster-card.selected {
+  border-color: var(--accent, #38bdf8);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.22), inset 0 0 18px rgba(56, 189, 248, 0.06);
+}
+.roster-card.locked { opacity: 0.55; filter: saturate(0.4); cursor: not-allowed; }
+.roster-portrait {
+  position: relative; width: 100%; aspect-ratio: 1; border-radius: 10px;
+  overflow: hidden; background: #0a1220;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.roster-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.roster-card.selected .roster-portrait {
+  border-color: var(--accent, #38bdf8);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+}
+.roster-lock {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 6px 0; text-align: center;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 1.8px; color: #cbd5e1;
+  background: rgba(2, 6, 12, 0.8);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.roster-name { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 2px; }
+.roster-sub { font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: #8fa3bf; }
+.roster-style { font-size: 10px; font-weight: 600; letter-spacing: 1.4px; color: #64748b; }
+.roster-pick {
+  margin-top: 2px; padding: 4px 16px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 2px; color: #052030;
+  background: linear-gradient(90deg, #38bdf8, #7dd3fc);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+/* levels */
+.level-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 12px;
+}
+.level-card {
+  appearance: none; font: inherit; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(8, 12, 20, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.level-card:hover { transform: translateY(-3px); border-color: rgba(56, 189, 248, 0.45); }
+.level-card.locked { opacity: 0.5; cursor: not-allowed; }
+.level-num { font-size: 11px; font-weight: 800; letter-spacing: 2.5px; color: #38bdf8; min-height: 14px; }
+.level-name { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: 1.5px; color: #f2f7ff; }
+.level-opp { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: #8fa3bf; }
+.level-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.level-diff {
+  font-size: 10px; font-weight: 800; letter-spacing: 1.6px;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid;
+}
+.level-diff.d-easy   { color: #4ade80; border-color: rgba(74, 222, 128, 0.4);  background: rgba(74, 222, 128, 0.08); }
+.level-diff.d-medium { color: #facc15; border-color: rgba(250, 204, 21, 0.4);  background: rgba(250, 204, 21, 0.08); }
+.level-diff.d-hard   { color: #f87171; border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.08); }
+.lstar { color: #334155; font-size: 13px; }
+.lstar.on { color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+.level-desc { font-size: 11px; color: #7c8db0; line-height: 1.45; }
+
+/* social */
+.social-tabs { display: flex; gap: 8px; margin: 4px 0 12px; }
+.social-tab {
+  appearance: none; font: inherit; cursor: pointer;
+  padding: 8px 20px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; letter-spacing: 2px; color: #9fc7ef;
+  background: rgba(8, 12, 20, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  -webkit-tap-highlight-color: transparent;
+}
+.social-tab.active {
+  color: #052030; border-color: transparent;
+  background: linear-gradient(90deg, #38bdf8, #7dd3fc);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+}
+.social-note { color: #8fa3bf; font-size: 12.5px; line-height: 1.5; margin: 8px 0; }
+.social-h { font-size: 12px; font-weight: 800; letter-spacing: 2.5px; color: #7dd3fc; margin: 14px 0 8px; }
+.friend-search-row { display: flex; gap: 8px; margin-bottom: 6px; }
+.friend-search-row input {
+  flex: 1; min-width: 0; padding: 9px 12px; border-radius: 8px; outline: none;
+  background: rgba(5, 9, 16, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #eaf2ff; font-family: 'Rajdhani', sans-serif; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px;
+}
+.friend-search-row input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
+.friend-row, .rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin: 6px 0; border-radius: 10px;
+  background: rgba(8, 12, 20, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.14);
+}
+.friend-name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; font-weight: 700; letter-spacing: 1px; color: #f2f7ff;
+}
+.friend-sub { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #8fa3bf; white-space: nowrap; }
+.friend-x {
+  appearance: none; border: none; background: none; cursor: pointer;
+  color: #64748b; font-size: 18px; line-height: 1; padding: 2px 6px;
+}
+.friend-x:hover { color: #f87171; }
+.rank-list { display: flex; flex-direction: column; gap: 6px; }
+.rank-row.me {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+}
+.rank-pos {
+  flex: none; width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* profile */
+.profile-card {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 16px; border-radius: 12px;
+  background: rgba(8, 12, 20, 0.55);
+  border: 1px solid rgba(56, 189, 248, 0.16);
+}
+.profile-id { display: flex; align-items: center; gap: 12px; }
+.lobby-player-dot { width: 12px; height: 12px; border-radius: 50%; background: #38bdf8; }
+.lobby-player-dot.big {
+  width: 52px; height: 52px;
+  background: radial-gradient(circle at 35% 30%, #7dd3fc, #0369a1);
+  border: 2px solid rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+}
+.profile-name { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: 2px; color: #f2f7ff; }
+.lobby-badge {
+  display: inline-block; margin-top: 4px; padding: 3px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 2px; color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);
+}
+.lobby-badge.guest { color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.08); }
+.nickname-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nickname-row input {
+  flex: 1; min-width: 140px; padding: 9px 12px; border-radius: 8px; outline: none;
+  background: rgba(5, 9, 16, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #eaf2ff; font-family: 'Rajdhani', sans-serif; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px;
+}
+.nickname-row input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
+.nickname-msg { font-size: 11.5px; font-weight: 700; letter-spacing: 0.5px; color: #7dd3fc; }
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 6px; border-radius: 10px;
+  background: rgba(5, 9, 16, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.14);
+}
+.stat-v { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 20px; color: #7dd3fc; }
+.stat-k { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; color: #64748b; }
+.profile-note { font-size: 12px; color: #8fa3bf; line-height: 1.5; margin: 0; }
+
+/* small buttons + settings list in panel */
+.btn-action.btn-small { font-size: 12px; padding: 7px 14px; letter-spacing: 1.5px; border-radius: 8px; }
+.btn-action.btn-dim { opacity: 0.75; filter: saturate(0.6); }
+.settings-list { display: flex; flex-direction: column; gap: 8px; }
+.settings-foot { margin-top: 14px; text-align: center; font-size: 11px; letter-spacing: 1.5px; color: #475569; }
+
+/* friend profile popup */
+#player-card {
+  position: fixed; inset: 0; z-index: 330;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(2, 4, 10, 0.6);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.player-card-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 22px 28px; border-radius: 14px; text-align: center;
+  background: rgba(7, 11, 20, 0.92);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+.player-card-inner h3 { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: 2px; color: #f2f7ff; margin: 0; }
+
 /* Fanned glass card dock */
 .lobby-dock {
   display: flex; justify-content: center; align-items: flex-end;
