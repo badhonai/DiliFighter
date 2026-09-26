@@ -606,7 +606,16 @@ export class Lobby {
     const msg = this.panelEl.querySelector('#nickname-msg');
     this.panelEl.querySelector('#nickname-save').addEventListener('click', async () => {
       msg.textContent = 'Saving…';
-      const res = await Social.setNickname(input.value);
+      const val = input.value.trim().slice(0, 16);
+      if (DB.data.profile.is_guest) {
+        // Guests keep their nickname on this device.
+        DB.data.profile.nickname = val || null;
+        DB._persist();
+        msg.textContent = 'Saved.';
+        this.refreshChrome();
+        return;
+      }
+      const res = await Social.setNickname(val);
       if (res.ok) {
         DB.data.profile.nickname = res.nickname;
         DB._persist();

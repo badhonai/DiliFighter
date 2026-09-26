@@ -146,6 +146,7 @@ export class Engine {
     if (opts.playerCharacter && opts.playerCharacter !== this.playerCharacter) {
       this.configureFighters(opts.playerCharacter);
     }
+    this.vsSplash.setMatchup(this.player.charId, this.opponent.charId);
     // Per-level opponent brain tuning (campaign). Cleared for quick match.
     this.opponent.aiMods = opts.aiMods || null;
     if (Number.isInteger(opts.arenaIndex)) this.stage.select(opts.arenaIndex);
